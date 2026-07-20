@@ -41,6 +41,7 @@ func main() {
 	// Initialize SQL Database
 	model.InitDB()
 	model.InitLogDB()
+	model.InitOptionMap()
 
 	var err error
 	err = model.CreateRootAccountIfNeed()
@@ -60,8 +61,6 @@ func main() {
 		logger.FatalLog("failed to initialize Redis: " + err.Error())
 	}
 
-	// Initialize options
-	model.InitOptionMap()
 	logger.SysLog(fmt.Sprintf("using theme %s", config.Theme))
 	if common.RedisEnabled {
 		// for compatibility with old versions
@@ -75,6 +74,9 @@ func main() {
 	if config.MemoryCacheEnabled {
 		go model.SyncOptions(config.SyncFrequency)
 		go model.SyncChannelCache(config.SyncFrequency)
+	}
+	if config.IsMasterNode {
+		model.StartPointsRefreshWorker()
 	}
 	if os.Getenv("CHANNEL_TEST_FREQUENCY") != "" {
 		frequency, err := strconv.Atoi(os.Getenv("CHANNEL_TEST_FREQUENCY"))

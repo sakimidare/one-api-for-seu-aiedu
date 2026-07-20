@@ -20,7 +20,7 @@ import {
 import Label from 'ui-component/Label';
 import TableSwitch from 'ui-component/Switch';
 import { renderQuota, renderNumber } from 'utils/common';
-import { IconDotsVertical, IconEdit, IconTrash, IconUser, IconBrandWechat, IconBrandGithub, IconMail } from '@tabler/icons-react';
+import { IconDotsVertical, IconEdit, IconTrash, IconUser, IconBrandWechat, IconBrandGithub, IconMail, IconRefresh } from '@tabler/icons-react';
 import { useTheme } from '@mui/material/styles';
 
 function renderRole(role) {
@@ -85,16 +85,16 @@ export default function UsersTableRow({ item, manageUser, handleOpenModal, setMo
 
         <TableCell>
           <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
-            <Tooltip title={'剩余额度'} placement="top">
+            <Tooltip title={'剩余积分'} placement="top">
               <Label color={'primary'} variant="outlined">
                 {' '}
-                {renderQuota(item.quota)}{' '}
+                {renderQuota(item.points)}{' '}
               </Label>
             </Tooltip>
-            <Tooltip title={'已用额度'} placement="top">
+            <Tooltip title={'已用积分'} placement="top">
               <Label color={'primary'} variant="outlined">
                 {' '}
-                {renderQuota(item.used_quota)}{' '}
+                {renderQuota(item.used_points)}{' '}
               </Label>
             </Tooltip>
             <Tooltip title={'请求次数'} placement="top">
@@ -162,6 +162,15 @@ export default function UsersTableRow({ item, manageUser, handleOpenModal, setMo
         >
           <IconEdit style={{ marginRight: '16px' }} />
           编辑
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleCloseMenu();
+            manageUser(item.username, 'reset_points', '');
+          }}
+        >
+          <IconRefresh style={{ marginRight: '16px' }} />
+          重置积分
         </MenuItem>
         <MenuItem onClick={handleDeleteOpen} sx={{ color: 'error.main' }}>
           <IconTrash style={{ marginRight: '16px' }} />

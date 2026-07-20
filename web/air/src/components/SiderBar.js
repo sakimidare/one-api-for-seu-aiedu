@@ -9,8 +9,6 @@ import '../index.css';
 import {
   IconCalendarClock,
   IconComment,
-  IconCreditCard,
-  IconGift,
   IconHistogram,
   IconHome,
   IconImage,
@@ -62,19 +60,6 @@ const SiderBar = () => {
       icon: <IconKey />
     },
     {
-      text: '兑换',
-      itemKey: 'redemption',
-      to: '/redemption',
-      icon: <IconGift />,
-      className: isAdmin() ? 'semi-navigation-item-normal' : 'tableHiddle'
-    },
-    {
-      text: '充值',
-      itemKey: 'topup',
-      to: '/topup',
-      icon: <IconCreditCard />
-    },
-    {
       text: '用户',
       itemKey: 'user',
       to: '/user',
@@ -124,8 +109,6 @@ const SiderBar = () => {
       localStorage.setItem('system_name', data.system_name);
       localStorage.setItem('logo', data.logo);
       localStorage.setItem('footer_html', data.footer_html);
-      localStorage.setItem('quota_per_unit', data.quota_per_unit);
-      localStorage.setItem('display_in_currency', data.display_in_currency);
       localStorage.setItem('enable_drawing', data.enable_drawing);
       localStorage.setItem('enable_data_export', data.enable_data_export);
       localStorage.setItem('data_export_default_time', data.data_export_default_time);
@@ -170,8 +153,6 @@ const SiderBar = () => {
                 home: '/',
                 channel: '/channel',
                 token: '/token',
-                redemption: '/redemption',
-                topup: '/topup',
                 user: '/user',
                 log: '/log',
                 midjourney: '/midjourney',

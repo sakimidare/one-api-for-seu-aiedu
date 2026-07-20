@@ -34,11 +34,11 @@ const UsersTable = () => {
     title: '统计信息', dataIndex: 'info', render: (text, record, index) => {
       return (<div>
         <Space spacing={1}>
-          <Tooltip content={'剩余额度'}>
-            <Tag color="white" size="large">{renderQuota(record.quota)}</Tag>
+          <Tooltip content={'剩余积分'}>
+            <Tag color="white" size="large">{renderQuota(record.points)}</Tag>
           </Tooltip>
-          <Tooltip content={'已用额度'}>
-            <Tag color="white" size="large">{renderQuota(record.used_quota)}</Tag>
+          <Tooltip content={'已用积分'}>
+            <Tag color="white" size="large">{renderQuota(record.used_points)}</Tag>
           </Tooltip>
           <Tooltip content={'调用次数'}>
             <Tag color="white" size="large">{renderNumber(record.request_count)}</Tag>
@@ -111,6 +111,9 @@ const UsersTable = () => {
           setEditingUser(record);
           setShowEditUser(true);
         }}>编辑</Button>
+        <Button theme="light" type="tertiary" style={{ marginRight: 1 }} onClick={() => {
+          manageUser(record.username, 'reset_points', record);
+        }}>重置积分</Button>
       </>
       <Popconfirm
         title="确定是否要删除此用户？"
@@ -212,8 +215,10 @@ const UsersTable = () => {
       if (action === 'delete') {
 
       } else {
-        record.status = user.status;
-        record.role = user.role;
+		record.status = user.status;
+		record.role = user.role;
+		if (user.points !== undefined) record.points = user.points;
+		if (user.used_points !== undefined) record.used_points = user.used_points;
       }
       setUsers(newUsers);
     } else {
@@ -312,10 +317,10 @@ const UsersTable = () => {
 
   const renderSelectedOption = (orderBy) => {
     switch (orderBy) {
-      case 'quota':
-        return '按剩余额度排序';
-      case 'used_quota':
-        return '按已用额度排序';
+      case 'points':
+        return '按剩余积分排序';
+      case 'used_points':
+        return '按已用积分排序';
       case 'request_count':
         return '按请求次数排序';
       default:
@@ -361,8 +366,8 @@ const UsersTable = () => {
         render={
           <Dropdown.Menu>
             <Dropdown.Item onClick={() => handleOrderByChange('', { value: '' })}>默认排序</Dropdown.Item>
-            <Dropdown.Item onClick={() => handleOrderByChange('', { value: 'quota' })}>按剩余额度排序</Dropdown.Item>
-            <Dropdown.Item onClick={() => handleOrderByChange('', { value: 'used_quota' })}>按已用额度排序</Dropdown.Item>
+            <Dropdown.Item onClick={() => handleOrderByChange('', { value: 'points' })}>按剩余积分排序</Dropdown.Item>
+            <Dropdown.Item onClick={() => handleOrderByChange('', { value: 'used_points' })}>按已用积分排序</Dropdown.Item>
             <Dropdown.Item onClick={() => handleOrderByChange('', { value: 'request_count' })}>按请求次数排序</Dropdown.Item>
           </Dropdown.Menu>
         }

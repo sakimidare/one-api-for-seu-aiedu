@@ -23,7 +23,7 @@ import {
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
-import { renderQuotaWithPrompt, showSuccess, showError } from 'utils/common';
+import { showSuccess, showError } from 'utils/common';
 import { API } from 'utils/api';
 
 const validationSchema = Yup.object().shape({
@@ -40,9 +40,9 @@ const validationSchema = Yup.object().shape({
     then: Yup.string().required('用户组 不能为空'),
     otherwise: Yup.string()
   }),
-  quota: Yup.number().when('is_edit', {
+  points: Yup.number().when('is_edit', {
     is: false,
-    then: Yup.number().min(0, '额度 不能小于 0'),
+    then: Yup.number().min(0, '积分不能小于 0'),
     otherwise: Yup.number()
   })
 });
@@ -53,7 +53,7 @@ const originInputs = {
   display_name: '',
   password: '',
   group: 'default',
-  quota: 0
+  points: 0
 };
 
 const EditModal = ({ open, userId, onCancel, onOk }) => {
@@ -208,30 +208,29 @@ const EditModal = ({ open, userId, onCancel, onOk }) => {
               </FormControl>
 
               {values.is_edit && (
-                <>
-                  <FormControl fullWidth error={Boolean(touched.quota && errors.quota)} sx={{ ...theme.typography.otherInput }}>
-                    <InputLabel htmlFor="channel-quota-label">额度</InputLabel>
+                <FormControl fullWidth error={Boolean(touched.points && errors.points)} sx={{ ...theme.typography.otherInput }}>
+                    <InputLabel htmlFor="user-points-label">剩余积分</InputLabel>
                     <OutlinedInput
-                      id="channel-quota-label"
-                      label="额度"
+                      id="user-points-label"
+                      label="剩余积分"
                       type="number"
-                      value={values.quota}
-                      name="quota"
-                      endAdornment={<InputAdornment position="end">{renderQuotaWithPrompt(values.quota)}</InputAdornment>}
+                      value={values.points}
+                      name="points"
+                      endAdornment={<InputAdornment position="end">积分</InputAdornment>}
                       onBlur={handleBlur}
                       onChange={handleChange}
-                      aria-describedby="helper-text-channel-quota-label"
-                      disabled={values.unlimited_quota}
+                      aria-describedby="helper-text-user-points-label"
                     />
 
-                    {touched.quota && errors.quota && (
-                      <FormHelperText error id="helper-tex-channel-quota-label">
-                        {errors.quota}
+                    {touched.points && errors.points && (
+                      <FormHelperText error id="helper-text-user-points-label">
+                        {errors.points}
                       </FormHelperText>
                     )}
-                  </FormControl>
+                </FormControl>
+              )}
 
-                  <FormControl fullWidth error={Boolean(touched.group && errors.group)} sx={{ ...theme.typography.otherInput }}>
+              <FormControl fullWidth error={Boolean(touched.group && errors.group)} sx={{ ...theme.typography.otherInput }}>
                     <InputLabel htmlFor="channel-group-label">分组</InputLabel>
                     <Select
                       id="channel-group-label"
@@ -261,9 +260,7 @@ const EditModal = ({ open, userId, onCancel, onOk }) => {
                         {errors.group}
                       </FormHelperText>
                     )}
-                  </FormControl>
-                </>
-              )}
+              </FormControl>
               <DialogActions>
                 <Button onClick={onCancel}>取消</Button>
                 <Button disableElevation disabled={isSubmitting} type="submit" variant="contained" color="primary">

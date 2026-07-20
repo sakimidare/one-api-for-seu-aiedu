@@ -33,7 +33,7 @@ type Channel struct {
 	BalanceUpdatedTime int64   `json:"balance_updated_time" gorm:"bigint"`
 	Models             string  `json:"models"`
 	Group              string  `json:"group" gorm:"type:varchar(32);default:'default'"`
-	UsedQuota          int64   `json:"used_quota" gorm:"bigint;default:0"`
+	UsedPoints         int64   `json:"used_points" gorm:"bigint;default:0"`
 	ModelMapping       *string `json:"model_mapping" gorm:"type:varchar(1024);default:''"`
 	Priority           *int64  `json:"priority" gorm:"bigint;default:0"`
 	Config             string  `json:"config"`
@@ -198,18 +198,18 @@ func UpdateChannelStatusById(id int, status int) {
 	}
 }
 
-func UpdateChannelUsedQuota(id int, quota int64) {
+func UpdateChannelUsedPoints(id int, points int64) {
 	if config.BatchUpdateEnabled {
-		addNewRecord(BatchUpdateTypeChannelUsedQuota, id, quota)
+		addNewRecord(BatchUpdateTypeChannelUsedPoints, id, points)
 		return
 	}
-	updateChannelUsedQuota(id, quota)
+	updateChannelUsedPoints(id, points)
 }
 
-func updateChannelUsedQuota(id int, quota int64) {
-	err := DB.Model(&Channel{}).Where("id = ?", id).Update("used_quota", gorm.Expr("used_quota + ?", quota)).Error
+func updateChannelUsedPoints(id int, points int64) {
+	err := DB.Model(&Channel{}).Where("id = ?", id).Update("used_points", gorm.Expr("used_points + ?", points)).Error
 	if err != nil {
-		logger.SysError("failed to update channel used quota: " + err.Error())
+		logger.SysError("failed to update channel used points: " + err.Error())
 	}
 }
 

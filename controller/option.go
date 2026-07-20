@@ -2,8 +2,11 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/songquanpeng/one-api/common/config"
 	"github.com/songquanpeng/one-api/common/helper"
@@ -83,6 +86,34 @@ func UpdateOption(c *gin.Context) {
 				"success": false,
 				"message": "无法启用 Turnstile 校验，请先填入 Turnstile 校验相关配置信息！",
 			})
+			return
+		}
+	case "DailyPointsByGroup":
+		points := make(map[string]int64)
+		if err := json.Unmarshal([]byte(option.Value), &points); err != nil || len(points) == 0 {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "分组每日积分必须是非空的整数 JSON 对象"})
+			return
+		}
+		for group, value := range points {
+			if strings.TrimSpace(group) == "" || value < 0 {
+				c.JSON(http.StatusOK, gin.H{"success": false, "message": "分组名称不能为空，积分不能为负数"})
+				return
+			}
+		}
+	case "PointsRefreshTime":
+		if _, err := time.Parse("15:04", option.Value); err != nil {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "积分刷新时间格式必须为 HH:mm"})
+			return
+		}
+	case "PointsRefreshTimezone":
+		if _, err := time.LoadLocation(option.Value); err != nil {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "无效的积分刷新时区"})
+			return
+		}
+	case "PreConsumedPoints":
+		value, err := strconv.ParseInt(option.Value, 10, 64)
+		if err != nil || value < 0 {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": fmt.Sprintf("预扣积分必须是非负整数：%s", option.Value)})
 			return
 		}
 	}

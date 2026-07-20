@@ -125,7 +125,7 @@ const LogsTable = () => {
       </div> : <></>);
     }
   }, {
-    title: '花费', dataIndex: 'quota', render: (text, record, index) => {
+    title: '积分', dataIndex: 'points', render: (text, record, index) => {
       return (record.type === 0 || record.type === 2 ? <div>
         {renderQuota(text, 6)}
       </div> : <></>);
@@ -163,7 +163,7 @@ const LogsTable = () => {
   const { username, token_name, model_name, start_timestamp, end_timestamp, channel } = inputs;
 
   const [stat, setStat] = useState({
-    quota: 0, token: 0
+    points: 0, token: 0
   });
 
   const handleInputChange = (value, name) => {
@@ -215,8 +215,8 @@ const LogsTable = () => {
       Modal.info({
         title: '用户信息', content: <div style={{ padding: 12 }}>
           <p>用户名: {data.username}</p>
-          <p>余额: {renderQuota(data.quota)}</p>
-          <p>已用额度：{renderQuota(data.used_quota)}</p>
+          <p>剩余积分: {renderQuota(data.points)}</p>
+          <p>已用积分：{renderQuota(data.used_points)}</p>
           <p>请求次数：{renderNumber(data.request_count)}</p>
         </div>, centered: true
       });
@@ -334,10 +334,10 @@ const LogsTable = () => {
     <Layout>
       <Header>
         <Spin spinning={loadingStat}>
-          <h3>使用明细（总消耗额度：
+          <h3>使用明细（总消耗积分：
             <span onClick={handleEyeClick} style={{
               cursor: 'pointer', color: 'gray'
-            }}>{showStat ? renderQuota(stat.quota) : '点击查看'}</span>
+            }}>{showStat ? renderQuota(stat.points) : '点击查看'}</span>
             ）
           </h3>
         </Spin>

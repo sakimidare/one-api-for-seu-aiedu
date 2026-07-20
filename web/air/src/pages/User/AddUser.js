@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { API, isMobile, showError, showSuccess } from '../../helpers';
 import Title from '@douyinfe/semi-ui/lib/es/typography/title';
-import { Button, Input, SideSheet, Space, Spin } from '@douyinfe/semi-ui';
+import { Button, Input, Select, SideSheet, Space, Spin } from '@douyinfe/semi-ui';
 
 const AddUser = (props) => {
   const originInputs = {
     username: '',
     display_name: '',
-    password: ''
+    password: '',
+    group: 'default'
   };
   const [inputs, setInputs] = useState(originInputs);
   const [loading, setLoading] = useState(false);
-  const { username, display_name, password } = inputs;
+  const { username, display_name, password, group } = inputs;
+  const [groupOptions, setGroupOptions] = useState([]);
+
+  useEffect(() => {
+    API.get('/api/group/').then((res) => {
+      if (res.data.success) {
+        setGroupOptions(res.data.data.map((item) => ({ label: item, value: item })));
+      }
+    });
+  }, []);
 
   const handleInputChange = (name, value) => {
     setInputs((inputs) => ({ ...inputs, [name]: value }));
@@ -67,6 +77,14 @@ const AddUser = (props) => {
             onChange={value => handleInputChange('username', value)}
             value={username}
             autoComplete="off"
+          />
+          <Select
+            style={{ marginTop: 20, width: '100%' }}
+            placeholder="请选择分组"
+            optionList={groupOptions}
+            value={group}
+            filter
+            onChange={value => handleInputChange('group', value)}
           />
           <Input
             style={{ marginTop: 20 }}

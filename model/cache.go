@@ -20,7 +20,7 @@ import (
 var (
 	TokenCacheSeconds         = config.SyncFrequency
 	UserId2GroupCacheSeconds  = config.SyncFrequency
-	UserId2QuotaCacheSeconds  = config.SyncFrequency
+	UserId2PointsCacheSeconds = config.SyncFrequency
 	UserId2StatusCacheSeconds = config.SyncFrequency
 	GroupModelsCacheSeconds   = config.SyncFrequency
 )
@@ -73,54 +73,54 @@ func CacheGetUserGroup(id int) (group string, err error) {
 	return group, err
 }
 
-func fetchAndUpdateUserQuota(ctx context.Context, id int) (quota int64, err error) {
-	quota, err = GetUserQuota(id)
+func fetchAndUpdateUserPoints(ctx context.Context, id int) (points int64, err error) {
+	points, err = GetUserPoints(id)
 	if err != nil {
 		return 0, err
 	}
-	err = common.RedisSet(fmt.Sprintf("user_quota:%d", id), fmt.Sprintf("%d", quota), time.Duration(UserId2QuotaCacheSeconds)*time.Second)
+	err = common.RedisSet(fmt.Sprintf("user_points:%d", id), fmt.Sprintf("%d", points), time.Duration(UserId2PointsCacheSeconds)*time.Second)
 	if err != nil {
-		logger.Error(ctx, "Redis set user quota error: "+err.Error())
+		logger.Error(ctx, "Redis set user points error: "+err.Error())
 	}
 	return
 }
 
-func CacheGetUserQuota(ctx context.Context, id int) (quota int64, err error) {
+func CacheGetUserPoints(ctx context.Context, id int) (points int64, err error) {
 	if !common.RedisEnabled {
-		return GetUserQuota(id)
+		return GetUserPoints(id)
 	}
-	quotaString, err := common.RedisGet(fmt.Sprintf("user_quota:%d", id))
+	pointsString, err := common.RedisGet(fmt.Sprintf("user_points:%d", id))
 	if err != nil {
-		return fetchAndUpdateUserQuota(ctx, id)
+		return fetchAndUpdateUserPoints(ctx, id)
 	}
-	quota, err = strconv.ParseInt(quotaString, 10, 64)
+	points, err = strconv.ParseInt(pointsString, 10, 64)
 	if err != nil {
-		return 0, nil
+		return fetchAndUpdateUserPoints(ctx, id)
 	}
-	if quota <= config.PreConsumedQuota { // when user's quota is less than pre-consumed quota, we need to fetch from db
-		logger.Infof(ctx, "user %d's cached quota is too low: %d, refreshing from db", quota, id)
-		return fetchAndUpdateUserQuota(ctx, id)
+	if points <= config.PreConsumedPoints {
+		logger.Infof(ctx, "user %d's cached points are too low: %d, refreshing from db", id, points)
+		return fetchAndUpdateUserPoints(ctx, id)
 	}
-	return quota, nil
+	return points, nil
 }
 
-func CacheUpdateUserQuota(ctx context.Context, id int) error {
+func CacheUpdateUserPoints(ctx context.Context, id int) error {
 	if !common.RedisEnabled {
 		return nil
 	}
-	quota, err := CacheGetUserQuota(ctx, id)
+	points, err := GetUserPoints(id)
 	if err != nil {
 		return err
 	}
-	err = common.RedisSet(fmt.Sprintf("user_quota:%d", id), fmt.Sprintf("%d", quota), time.Duration(UserId2QuotaCacheSeconds)*time.Second)
+	err = common.RedisSet(fmt.Sprintf("user_points:%d", id), fmt.Sprintf("%d", points), time.Duration(UserId2PointsCacheSeconds)*time.Second)
 	return err
 }
 
-func CacheDecreaseUserQuota(id int, quota int64) error {
+func CacheDecreaseUserPoints(id int, points int64) error {
 	if !common.RedisEnabled {
 		return nil
 	}
-	err := common.RedisDecrease(fmt.Sprintf("user_quota:%d", id), int64(quota))
+	err := common.RedisDecrease(fmt.Sprintf("user_points:%d", id), int64(points))
 	return err
 }
 

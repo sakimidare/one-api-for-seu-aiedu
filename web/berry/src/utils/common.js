@@ -146,18 +146,10 @@ export function timestamp2string(timestamp) {
 }
 
 export function calculateQuota(quota, digits = 2) {
-    let quotaPerUnit = localStorage.getItem('quota_per_unit');
-    quotaPerUnit = parseFloat(quotaPerUnit);
-
-    return (quota / quotaPerUnit).toFixed(digits);
+    return Number(quota).toFixed(digits);
 }
 
 export function renderQuota(quota, digits = 2) {
-    let displayInCurrency = localStorage.getItem('display_in_currency');
-    displayInCurrency = displayInCurrency === 'true';
-    if (displayInCurrency) {
-        return '$' + calculateQuota(quota, digits);
-    }
     return renderNumber(quota);
 }
 
@@ -183,11 +175,6 @@ export function renderNumber(num) {
 }
 
 export function renderQuotaWithPrompt(quota, digits) {
-    let displayInCurrency = localStorage.getItem('display_in_currency');
-    displayInCurrency = displayInCurrency === 'true';
-    if (displayInCurrency) {
-        return `（等价金额：${renderQuota(quota, digits)}）`;
-    }
     return '';
 }
 

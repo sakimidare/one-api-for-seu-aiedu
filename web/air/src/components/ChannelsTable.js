@@ -113,8 +113,8 @@ const ChannelsTable = () => {
         return (
           <div>
             <Space spacing={1}>
-              <Tooltip content={'已用额度'}>
-                <Tag color="white" type="ghost" size="large">{renderQuota(record.used_quota)}</Tag>
+              <Tooltip content={'已用积分'}>
+                <Tag color="white" type="ghost" size="large">{renderQuota(record.used_points)}</Tag>
               </Tooltip>
               <Tooltip content={'剩余额度' + record.balance + '，点击更新'}>
                 <Tag color="white" type="ghost" size="large" onClick={() => {

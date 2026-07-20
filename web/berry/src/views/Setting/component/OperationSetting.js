@@ -21,22 +21,18 @@ require("dayjs/locale/zh-cn");
 const OperationSetting = () => {
   let now = new Date();
   let [inputs, setInputs] = useState({
-    QuotaForNewUser: 0,
-    QuotaForInviter: 0,
-    QuotaForInvitee: 0,
-    QuotaRemindThreshold: 0,
-    PreConsumedQuota: 0,
+    DailyPointsByGroup: '{"default":0}',
+    PointsRefreshTime: '00:00',
+    PointsRefreshTimezone: 'Asia/Shanghai',
+    PreConsumedPoints: 0,
     ModelRatio: "",
     CompletionRatio: "",
     GroupRatio: "",
-    TopUpLink: "",
     ChatLink: "",
-    QuotaPerUnit: 0,
     AutomaticDisableChannelEnabled: "",
     AutomaticEnableChannelEnabled: "",
     ChannelDisableThreshold: 0,
     LogConsumeEnabled: "",
-    DisplayInCurrencyEnabled: "",
     DisplayTokenStatEnabled: "",
     ApproximateTokenEnabled: "",
     RetryTimes: 0,
@@ -113,14 +109,6 @@ const OperationSetting = () => {
             inputs.ChannelDisableThreshold
           );
         }
-        if (
-          originInputs["QuotaRemindThreshold"] !== inputs.QuotaRemindThreshold
-        ) {
-          await updateOption(
-            "QuotaRemindThreshold",
-            inputs.QuotaRemindThreshold
-          );
-        }
         break;
       case "ratio":
         if (originInputs["ModelRatio"] !== inputs.ModelRatio) {
@@ -146,28 +134,26 @@ const OperationSetting = () => {
         }
         break;
       case "quota":
-        if (originInputs["QuotaForNewUser"] !== inputs.QuotaForNewUser) {
-          await updateOption("QuotaForNewUser", inputs.QuotaForNewUser);
+        if (originInputs["DailyPointsByGroup"] !== inputs.DailyPointsByGroup) {
+          if (!verifyJSON(inputs.DailyPointsByGroup)) {
+            showError("分组积分配置不是合法的 JSON 字符串");
+            return;
+          }
+          await updateOption("DailyPointsByGroup", inputs.DailyPointsByGroup);
         }
-        if (originInputs["QuotaForInvitee"] !== inputs.QuotaForInvitee) {
-          await updateOption("QuotaForInvitee", inputs.QuotaForInvitee);
+        if (originInputs["PointsRefreshTime"] !== inputs.PointsRefreshTime) {
+          await updateOption("PointsRefreshTime", inputs.PointsRefreshTime);
         }
-        if (originInputs["QuotaForInviter"] !== inputs.QuotaForInviter) {
-          await updateOption("QuotaForInviter", inputs.QuotaForInviter);
+        if (originInputs["PointsRefreshTimezone"] !== inputs.PointsRefreshTimezone) {
+          await updateOption("PointsRefreshTimezone", inputs.PointsRefreshTimezone);
         }
-        if (originInputs["PreConsumedQuota"] !== inputs.PreConsumedQuota) {
-          await updateOption("PreConsumedQuota", inputs.PreConsumedQuota);
+        if (originInputs["PreConsumedPoints"] !== inputs.PreConsumedPoints) {
+          await updateOption("PreConsumedPoints", inputs.PreConsumedPoints);
         }
         break;
       case "general":
-        if (originInputs["TopUpLink"] !== inputs.TopUpLink) {
-          await updateOption("TopUpLink", inputs.TopUpLink);
-        }
         if (originInputs["ChatLink"] !== inputs.ChatLink) {
           await updateOption("ChatLink", inputs.ChatLink);
-        }
-        if (originInputs["QuotaPerUnit"] !== inputs.QuotaPerUnit) {
-          await updateOption("QuotaPerUnit", inputs.QuotaPerUnit);
         }
         if (originInputs["RetryTimes"] !== inputs.RetryTimes) {
           await updateOption("RetryTimes", inputs.RetryTimes);
@@ -199,18 +185,6 @@ const OperationSetting = () => {
             spacing={{ xs: 3, sm: 2, md: 4 }}
           >
             <FormControl fullWidth>
-              <InputLabel htmlFor="TopUpLink">充值链接</InputLabel>
-              <OutlinedInput
-                id="TopUpLink"
-                name="TopUpLink"
-                value={inputs.TopUpLink}
-                onChange={handleInputChange}
-                label="充值链接"
-                placeholder="例如发卡网站的购买链接"
-                disabled={loading}
-              />
-            </FormControl>
-            <FormControl fullWidth>
               <InputLabel htmlFor="ChatLink">聊天链接</InputLabel>
               <OutlinedInput
                 id="ChatLink"
@@ -219,18 +193,6 @@ const OperationSetting = () => {
                 onChange={handleInputChange}
                 label="聊天链接"
                 placeholder="例如 ChatGPT Next Web 的部署地址"
-                disabled={loading}
-              />
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="QuotaPerUnit">单位额度</InputLabel>
-              <OutlinedInput
-                id="QuotaPerUnit"
-                name="QuotaPerUnit"
-                value={inputs.QuotaPerUnit}
-                onChange={handleInputChange}
-                label="单位额度"
-                placeholder="一单位货币能兑换的额度"
                 disabled={loading}
               />
             </FormControl>
@@ -253,18 +215,6 @@ const OperationSetting = () => {
             justifyContent="flex-start"
             alignItems="flex-start"
           >
-            <FormControlLabel
-              sx={{ marginLeft: "0px" }}
-              label="以货币形式显示额度"
-              control={
-                <Checkbox
-                  checked={inputs.DisplayInCurrencyEnabled === "true"}
-                  onChange={handleInputChange}
-                  name="DisplayInCurrencyEnabled"
-                />
-              }
-            />
-
             <FormControlLabel
               label="Billing 相关 API 显示令牌额度而非用户额度"
               control={
@@ -375,21 +325,6 @@ const OperationSetting = () => {
                 disabled={loading}
               />
             </FormControl>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="QuotaRemindThreshold">
-                额度提醒阈值
-              </InputLabel>
-              <OutlinedInput
-                id="QuotaRemindThreshold"
-                name="QuotaRemindThreshold"
-                type="number"
-                value={inputs.QuotaRemindThreshold}
-                onChange={handleInputChange}
-                label="额度提醒阈值"
-                placeholder="低于此额度时将发送邮件提醒用户"
-                disabled={loading}
-              />
-            </FormControl>
           </Stack>
           <FormControlLabel
             label="失败时自动禁用渠道"
@@ -421,66 +356,59 @@ const OperationSetting = () => {
           </Button>
         </Stack>
       </SubCard>
-      <SubCard title="额度设置">
+      <SubCard title="积分设置">
         <Stack justifyContent="flex-start" alignItems="flex-start" spacing={2}>
           <Stack
             direction={{ sm: "column", md: "row" }}
             spacing={{ xs: 3, sm: 2, md: 4 }}
           >
             <FormControl fullWidth>
-              <InputLabel htmlFor="QuotaForNewUser">新用户初始额度</InputLabel>
+              <InputLabel htmlFor="DailyPointsByGroup">分组每日积分 JSON</InputLabel>
               <OutlinedInput
-                id="QuotaForNewUser"
-                name="QuotaForNewUser"
-                type="number"
-                value={inputs.QuotaForNewUser}
+                id="DailyPointsByGroup"
+                name="DailyPointsByGroup"
+                value={inputs.DailyPointsByGroup}
                 onChange={handleInputChange}
-                label="新用户初始额度"
-                placeholder="例如：100"
+                label="分组每日积分 JSON"
+                placeholder='例如 {"default":1000,"dev":3000}'
                 disabled={loading}
               />
             </FormControl>
             <FormControl fullWidth>
-              <InputLabel htmlFor="PreConsumedQuota">请求预扣费额度</InputLabel>
+              <InputLabel htmlFor="PreConsumedPoints">请求预扣积分</InputLabel>
               <OutlinedInput
-                id="PreConsumedQuota"
-                name="PreConsumedQuota"
+                id="PreConsumedPoints"
+                name="PreConsumedPoints"
                 type="number"
-                value={inputs.PreConsumedQuota}
+                value={inputs.PreConsumedPoints}
                 onChange={handleInputChange}
-                label="请求预扣费额度"
+                label="请求预扣积分"
                 placeholder="请求结束后多退少补"
                 disabled={loading}
               />
             </FormControl>
             <FormControl fullWidth>
-              <InputLabel htmlFor="QuotaForInviter">
-                邀请新用户奖励额度
-              </InputLabel>
+              <InputLabel htmlFor="PointsRefreshTime">刷新时间</InputLabel>
               <OutlinedInput
-                id="QuotaForInviter"
-                name="QuotaForInviter"
-                type="number"
-                label="邀请新用户奖励额度"
-                value={inputs.QuotaForInviter}
+                id="PointsRefreshTime"
+                name="PointsRefreshTime"
+                label="刷新时间"
+                value={inputs.PointsRefreshTime}
                 onChange={handleInputChange}
-                placeholder="例如：2000"
+                placeholder="00:00"
                 disabled={loading}
               />
             </FormControl>
             <FormControl fullWidth>
-              <InputLabel htmlFor="QuotaForInvitee">
-                新用户使用邀请码奖励额度
-              </InputLabel>
+              <InputLabel htmlFor="PointsRefreshTimezone">刷新时区</InputLabel>
               <OutlinedInput
-                id="QuotaForInvitee"
-                name="QuotaForInvitee"
-                type="number"
-                label="新用户使用邀请码奖励额度"
-                value={inputs.QuotaForInvitee}
+                id="PointsRefreshTimezone"
+                name="PointsRefreshTimezone"
+                label="刷新时区"
+                value={inputs.PointsRefreshTimezone}
                 onChange={handleInputChange}
                 autoComplete="new-password"
-                placeholder="例如：1000"
+                placeholder="Asia/Shanghai"
                 disabled={loading}
               />
             </FormControl>
@@ -491,7 +419,7 @@ const OperationSetting = () => {
               submitConfig("quota").then();
             }}
           >
-            保存额度设置
+            保存积分设置
           </Button>
         </Stack>
       </SubCard>

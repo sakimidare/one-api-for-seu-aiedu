@@ -186,7 +186,7 @@ const Detail = (props) => {
                 data.push({
                     'count': 0,
                     'model_name': '无数据',
-                    'quota': 0,
+                    'points': 0,
                     'created_at': now.getTime() / 1000
                 })
             }
@@ -238,7 +238,7 @@ const Detail = (props) => {
         let times = 0;
         for (let i = 0; i < data.length; i++) {
             const item = data[i];
-            consumeQuota += item.quota;
+            consumeQuota += item.points;
             times += item.count;
             // 合并model_name
             let pieItem = pieData.find(it => it.type === item.model_name);
@@ -255,12 +255,12 @@ const Detail = (props) => {
             let createTime = timestamp2string1(item.created_at, dataExportDefaultTime);
             let lineItem = lineData.find(it => it.Time === createTime && it.Model === item.model_name);
             if (lineItem) {
-                lineItem.Usage += parseFloat(getQuotaWithUnit(item.quota));
+                lineItem.Usage += parseFloat(getQuotaWithUnit(item.points));
             } else {
                 lineData.push({
                     "Time": createTime,
                     "Model": item.model_name,
-                    "Usage": parseFloat(getQuotaWithUnit(item.quota))
+                    "Usage": parseFloat(getQuotaWithUnit(item.points))
                 });
             }
         }

@@ -13,12 +13,7 @@ import { API, showError, showSuccess } from '../helpers';
 import { useTranslation } from 'react-i18next';
 
 import { ITEMS_PER_PAGE } from '../constants';
-import {
-  renderGroup,
-  renderNumber,
-  renderQuota,
-  renderText,
-} from '../helpers/render';
+import { renderGroup, renderNumber, renderQuota, renderText } from '../helpers/render';
 
 function renderRole(role, t) {
   switch (role) {
@@ -91,11 +86,13 @@ const UsersTable = () => {
         let user = res.data.data;
         let newUsers = [...users];
         let realIdx = (activePage - 1) * ITEMS_PER_PAGE + idx;
-        if (action === 'delete') {
+		if (action === 'delete') {
           newUsers[realIdx].deleted = true;
-        } else {
-          newUsers[realIdx].status = user.status;
-          newUsers[realIdx].role = user.role;
+		} else {
+		  newUsers[realIdx].status = user.status;
+		  newUsers[realIdx].role = user.role;
+		  if (user.points !== undefined) newUsers[realIdx].points = user.points;
+		  if (user.used_points !== undefined) newUsers[realIdx].used_points = user.used_points;
         }
         setUsers(newUsers);
       } else {
@@ -216,10 +213,10 @@ const UsersTable = () => {
             <Table.HeaderCell
               style={{ cursor: 'pointer' }}
               onClick={() => {
-                sortUser('quota');
+                sortUser('points');
               }}
             >
-              {t('user.table.quota')}
+              {t('user.table.points')}
             </Table.HeaderCell>
             <Table.HeaderCell
               style={{ cursor: 'pointer' }}
@@ -269,15 +266,15 @@ const UsersTable = () => {
                   {/*</Table.Cell>*/}
                   <Table.Cell>
                     <Popup
-                      content={t('user.table.remaining_quota')}
+					  content={t('user.table.remaining_points')}
                       trigger={
-                        <Label basic>{renderQuota(user.quota, t)}</Label>
+                      <Label basic>{renderQuota(user.points, t)}</Label>
                       }
                     />
                     <Popup
-                      content={t('user.table.used_quota')}
+					  content={t('user.table.used_points')}
                       trigger={
-                        <Label basic>{renderQuota(user.used_quota, t)}</Label>
+                      <Label basic>{renderQuota(user.used_points, t)}</Label>
                       }
                     />
                     <Popup
@@ -350,9 +347,16 @@ const UsersTable = () => {
                           ? t('user.buttons.disable')
                           : t('user.buttons.enable')}
                       </Button>
-                      <Button
-                        size={'tiny'}
-                        as={Link}
+					  <Button
+						size={'tiny'}
+						onClick={() => manageUser(user.username, 'reset_points', idx)}
+						disabled={user.role === 100}
+					  >
+						{t('user.buttons.reset_points')}
+					  </Button>
+					  <Button
+						size={'tiny'}
+						as={Link}
                         to={'/user/edit/' + user.id}
                       >
                         {t('user.buttons.edit')}
@@ -376,14 +380,14 @@ const UsersTable = () => {
                 options={[
                   { key: '', text: t('user.table.sort.default'), value: '' },
                   {
-                    key: 'quota',
-                    text: t('user.table.sort.by_quota'),
-                    value: 'quota',
+                    key: 'points',
+                    text: t('user.table.sort.by_points'),
+                    value: 'points',
                   },
                   {
-                    key: 'used_quota',
-                    text: t('user.table.sort.by_used_quota'),
-                    value: 'used_quota',
+                    key: 'used_points',
+                    text: t('user.table.sort.by_used_points'),
+                    value: 'used_points',
                   },
                   {
                     key: 'request_count',

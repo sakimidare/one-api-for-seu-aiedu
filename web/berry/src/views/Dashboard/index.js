@@ -5,7 +5,7 @@ import StatisticalLineChartCard from './component/StatisticalLineChartCard';
 import StatisticalBarChart from './component/StatisticalBarChart';
 import { generateChartOptions, getLastSevenDays } from 'utils/chart';
 import { API } from 'utils/api';
-import { showError, calculateQuota, renderNumber } from 'utils/common';
+import { showError, renderNumber } from 'utils/common';
 import UserCard from 'ui-component/cards/UserCard';
 
 const Dashboard = () => {
@@ -23,7 +23,7 @@ const Dashboard = () => {
       if (data) {
         let lineData = getLineDataGroup(data);
         setRequestChart(getLineCardOption(lineData, 'RequestCount'));
-        setQuotaChart(getLineCardOption(lineData, 'Quota'));
+        setQuotaChart(getLineCardOption(lineData, 'Points'));
         setTokenChart(getLineCardOption(lineData, 'PromptTokens'));
         setStatisticalData(getBarDataGroup(data));
       }
@@ -87,16 +87,16 @@ const Dashboard = () => {
             <UserCard>
               <Grid container spacing={gridSpacing} justifyContent="center" alignItems="center" paddingTop={'20px'}>
                 <Grid item xs={4}>
-                  <Typography variant="h4">余额：</Typography>
+                  <Typography variant="h4">剩余积分：</Typography>
                 </Grid>
                 <Grid item xs={8}>
-                  <Typography variant="h3"> {users?.quota ? '$' + calculateQuota(users.quota) : '未知'}</Typography>
+                  <Typography variant="h3"> {users?.points ?? '未知'}</Typography>
                 </Grid>
                 <Grid item xs={4}>
-                  <Typography variant="h4">已使用：</Typography>
+                  <Typography variant="h4">已用积分：</Typography>
                 </Grid>
                 <Grid item xs={8}>
-                  <Typography variant="h3"> {users?.used_quota ? '$' + calculateQuota(users.used_quota) : '未知'}</Typography>
+                  <Typography variant="h3"> {users?.used_points ?? '未知'}</Typography>
                 </Grid>
                 <Grid item xs={4}>
                   <Typography variant="h4">调用次数：</Typography>
@@ -120,13 +120,13 @@ function getLineDataGroup(statisticalData) {
       acc[cur.Day] = {
         date: cur.Day,
         RequestCount: 0,
-        Quota: 0,
+        Points: 0,
         PromptTokens: 0,
         CompletionTokens: 0
       };
     }
     acc[cur.Day].RequestCount += cur.RequestCount;
-    acc[cur.Day].Quota += cur.Quota;
+    acc[cur.Day].Points += cur.Points;
     acc[cur.Day].PromptTokens += cur.PromptTokens;
     acc[cur.Day].CompletionTokens += cur.CompletionTokens;
     return acc;
@@ -137,7 +137,7 @@ function getLineDataGroup(statisticalData) {
       return {
         date: day,
         RequestCount: 0,
-        Quota: 0,
+        Points: 0,
         PromptTokens: 0,
         CompletionTokens: 0
       };
@@ -160,7 +160,7 @@ function getBarDataGroup(data) {
     }
     const index = lastSevenDays.indexOf(item.Day);
     if (index !== -1) {
-      map.get(item.ModelName).data[index] = calculateQuota(item.Quota, 3);
+      map.get(item.ModelName).data[index] = item.Points;
     }
   }
 
@@ -185,8 +185,8 @@ function getLineCardOption(lineDataGroup, field) {
       value: item[field]
     };
     switch (field) {
-      case 'Quota':
-        tmp.value = calculateQuota(item.Quota, 3);
+      case 'Points':
+        tmp.value = item.Points;
         break;
       case 'PromptTokens':
         tmp.value += item.CompletionTokens;
@@ -204,9 +204,9 @@ function getLineCardOption(lineDataGroup, field) {
       chartData = generateChartOptions(lineData, '次');
       todayValue = renderNumber(todayValue);
       break;
-    case 'Quota':
-      chartData = generateChartOptions(lineData, '美元');
-      todayValue = '$' + renderNumber(todayValue);
+    case 'Points':
+      chartData = generateChartOptions(lineData, '积分');
+      todayValue = renderNumber(todayValue);
       break;
     case 'PromptTokens':
       chartData = generateChartOptions(lineData, '');

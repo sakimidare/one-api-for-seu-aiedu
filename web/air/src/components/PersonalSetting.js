@@ -12,14 +12,13 @@ import {
   Descriptions,
   Image,
   Input,
-  InputNumber,
   Layout,
   Modal,
   Space,
   Tag,
   Typography
 } from '@douyinfe/semi-ui';
-import { getQuotaPerUnit, renderQuota, renderQuotaWithPrompt, stringToColor } from '../helpers/render';
+import { renderQuota, stringToColor } from '../helpers/render';
 import TelegramLoginButton from 'react-telegram-login';
 
 const PersonalSetting = () => {
@@ -48,8 +47,6 @@ const PersonalSetting = () => {
   const [affLink, setAffLink] = useState('');
   const [systemToken, setSystemToken] = useState('');
   const [models, setModels] = useState([]);
-  const [openTransfer, setOpenTransfer] = useState(false);
-  const [transferAmount, setTransferAmount] = useState(0);
 
   useEffect(() => {
     // let user = localStorage.getItem('user');
@@ -74,7 +71,6 @@ const PersonalSetting = () => {
     );
     loadModels().then();
     getAffLink().then();
-    setTransferAmount(getQuotaPerUnit());
   }, []);
 
   useEffect(() => {
@@ -205,27 +201,6 @@ const PersonalSetting = () => {
     setShowChangePasswordModal(false);
   };
 
-  const transfer = async () => {
-    if (transferAmount < getQuotaPerUnit()) {
-      showError('划转金额最低为' + renderQuota(getQuotaPerUnit()));
-      return;
-    }
-    const res = await API.post(
-      `/api/user/aff_transfer`,
-      {
-        quota: transferAmount
-      }
-    );
-    const { success, message } = res.data;
-    if (success) {
-      showSuccess(message);
-      setOpenTransfer(false);
-      getUserData().then();
-    } else {
-      showError(message);
-    }
-  };
-
   const sendVerificationCode = async () => {
     if (inputs.email === '') {
       showError('请输入邮箱！');
@@ -277,10 +252,6 @@ const PersonalSetting = () => {
     }
   };
 
-  const handleCancel = () => {
-    setOpenTransfer(false);
-  };
-
   const copyText = async (text) => {
     if (await copy(text)) {
       showSuccess('已复制：' + text);
@@ -294,27 +265,6 @@ const PersonalSetting = () => {
     <div>
       <Layout>
         <Layout.Content>
-          <Modal
-            title="请输入要划转的数量"
-            visible={openTransfer}
-            onOk={transfer}
-            onCancel={handleCancel}
-            maskClosable={false}
-            size={'small'}
-            centered={true}
-          >
-            <div style={{ marginTop: 20 }}>
-              <Typography.Text>{`可用额度${renderQuotaWithPrompt(userState?.user?.aff_quota)}`}</Typography.Text>
-              <Input style={{ marginTop: 5 }} value={userState?.user?.aff_quota} disabled={true}></Input>
-            </div>
-            <div style={{ marginTop: 20 }}>
-              <Typography.Text>{`划转额度${renderQuotaWithPrompt(transferAmount)} 最低` + renderQuota(getQuotaPerUnit())}</Typography.Text>
-              <div>
-                <InputNumber min={0} style={{ marginTop: 5 }} value={transferAmount}
-                  onChange={(value) => setTransferAmount(value)} disabled={false}></InputNumber>
-              </div>
-            </div>
-          </Modal>
           <div style={{ marginTop: 20 }}>
             <Card
               title={
@@ -337,8 +287,8 @@ const PersonalSetting = () => {
               }
               footer={
                 <Descriptions row>
-                  <Descriptions.Item itemKey="当前余额">{renderQuota(userState?.user?.quota)}</Descriptions.Item>
-                  <Descriptions.Item itemKey="历史消耗">{renderQuota(userState?.user?.used_quota)}</Descriptions.Item>
+                  <Descriptions.Item itemKey="剩余积分">{renderQuota(userState?.user?.points)}</Descriptions.Item>
+                  <Descriptions.Item itemKey="已用积分">{renderQuota(userState?.user?.used_points)}</Descriptions.Item>
                   <Descriptions.Item itemKey="请求次数">{userState.user?.request_count}</Descriptions.Item>
                 </Descriptions>
               }
@@ -357,37 +307,6 @@ const PersonalSetting = () => {
                 </Space>
               </div>
             </Card>
-            {/* <Card
-              footer={
-                <div>
-                  <Typography.Text>邀请链接</Typography.Text>
-                  <Input
-                    style={{ marginTop: 10 }}
-                    value={affLink}
-                    onClick={handleAffLinkClick}
-                    readOnly
-                  />
-                </div>
-              }
-            >
-              <Typography.Title heading={6}>邀请信息</Typography.Title>
-              <div style={{ marginTop: 10 }}>
-                <Descriptions row>
-                  <Descriptions.Item itemKey="待使用收益">
-                    <span style={{ color: 'rgba(var(--semi-red-5), 1)' }}>
-                      {
-                        renderQuota(userState?.user?.aff_quota)
-                      }
-                    </span>
-                    <Button type={'secondary'} onClick={() => setOpenTransfer(true)} size={'small'}
-                      style={{ marginLeft: 10 }}>划转</Button>
-                  </Descriptions.Item>
-                  <Descriptions.Item
-                    itemKey="总收益">{renderQuota(userState?.user?.aff_history_quota)}</Descriptions.Item>
-                  <Descriptions.Item itemKey="邀请人数">{userState?.user?.aff_count}</Descriptions.Item>
-                </Descriptions>
-              </div>
-            </Card> */}
             <Card>
               <Typography.Title heading={6}>邀请链接</Typography.Title>
               <Input

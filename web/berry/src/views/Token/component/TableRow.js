@@ -20,7 +20,7 @@ import {
 } from '@mui/material';
 
 import TableSwitch from 'ui-component/Switch';
-import { renderQuota, timestamp2string, copy } from 'utils/common';
+import { timestamp2string, copy } from 'utils/common';
 
 import { IconDotsVertical, IconEdit, IconTrash, IconCaretDownFilled } from '@tabler/icons-react';
 
@@ -196,10 +196,6 @@ export default function TokensTableRow({ item, manageToken, handleOpenModal, set
             />
           </Tooltip>
         </TableCell>
-
-        <TableCell>{renderQuota(item.used_quota)}</TableCell>
-
-        <TableCell>{item.unlimited_quota ? '无限制' : renderQuota(item.remain_quota, 2)}</TableCell>
 
         <TableCell>{timestamp2string(item.created_time)}</TableCell>
 

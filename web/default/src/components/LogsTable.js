@@ -158,13 +158,12 @@ const LogsTable = () => {
   } = inputs;
 
   const [stat, setStat] = useState({
-    quota: 0,
+    points: 0,
     token: 0,
   });
 
   const LOG_OPTIONS = [
     { key: '0', text: t('log.type.all'), value: 0 },
-    { key: '1', text: t('log.type.topup'), value: 1 },
     { key: '2', text: t('log.type.usage'), value: 2 },
     { key: '3', text: t('log.type.admin'), value: 3 },
     { key: '4', text: t('log.type.system'), value: 4 },
@@ -311,8 +310,8 @@ const LogsTable = () => {
   return (
     <>
       <Header as='h3'>
-        {t('log.usage_details')}（{t('log.total_quota')}：
-        {showStat && renderQuota(stat.quota, t)}
+        {t('log.usage_details')}（{t('log.total_points')}：
+        {showStat && renderQuota(stat.points, t)}
         {!showStat && (
           <span
             onClick={handleEyeClick}
@@ -492,11 +491,11 @@ const LogsTable = () => {
                 <Table.HeaderCell
                   style={{ cursor: 'pointer' }}
                   onClick={() => {
-                    sortLog('quota');
+                    sortLog('points');
                   }}
                   width={1}
                 >
-                  {t('log.table.quota')}
+                  {t('log.table.points')}
                 </Table.HeaderCell>
               </>
             )}
@@ -564,7 +563,7 @@ const LogsTable = () => {
                         {log.completion_tokens ? log.completion_tokens : ''}
                       </Table.Cell>
                       <Table.Cell>
-                        {log.quota ? renderQuota(log.quota, t, 6) : ''}
+                        {log.points ? renderQuota(log.points, t, 6) : ''}
                       </Table.Cell>
                     </>
                   )}

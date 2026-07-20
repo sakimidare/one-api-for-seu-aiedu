@@ -13,22 +13,19 @@ const OperationSetting = () => {
   const { t } = useTranslation();
   let now = new Date();
   let [inputs, setInputs] = useState({
-    QuotaForNewUser: 0,
-    QuotaForInviter: 0,
-    QuotaForInvitee: 0,
-    QuotaRemindThreshold: 0,
-    PreConsumedQuota: 0,
+    DailyPointsByGroup: '{"default":0}',
+    PointsRefreshTime: '00:00',
+    PointsRefreshTimezone: 'Asia/Shanghai',
+    LastPointsRefreshDate: '',
+    PreConsumedPoints: 0,
     ModelRatio: '',
     CompletionRatio: '',
     GroupRatio: '',
-    TopUpLink: '',
     ChatLink: '',
-    QuotaPerUnit: 0,
     AutomaticDisableChannelEnabled: '',
     AutomaticEnableChannelEnabled: '',
     ChannelDisableThreshold: 0,
     LogConsumeEnabled: '',
-    DisplayInCurrencyEnabled: '',
     DisplayTokenStatEnabled: '',
     ApproximateTokenEnabled: '',
     RetryTimes: 0,
@@ -106,14 +103,6 @@ const OperationSetting = () => {
             inputs.ChannelDisableThreshold
           );
         }
-        if (
-          originInputs['QuotaRemindThreshold'] !== inputs.QuotaRemindThreshold
-        ) {
-          await updateOption(
-            'QuotaRemindThreshold',
-            inputs.QuotaRemindThreshold
-          );
-        }
         break;
       case 'ratio':
         if (originInputs['ModelRatio'] !== inputs.ModelRatio) {
@@ -139,28 +128,26 @@ const OperationSetting = () => {
         }
         break;
       case 'quota':
-        if (originInputs['QuotaForNewUser'] !== inputs.QuotaForNewUser) {
-          await updateOption('QuotaForNewUser', inputs.QuotaForNewUser);
+        if (originInputs['DailyPointsByGroup'] !== inputs.DailyPointsByGroup) {
+          if (!verifyJSON(inputs.DailyPointsByGroup)) {
+            showError('分组积分配置不是合法的 JSON 字符串');
+            return;
+          }
+          await updateOption('DailyPointsByGroup', inputs.DailyPointsByGroup);
         }
-        if (originInputs['QuotaForInvitee'] !== inputs.QuotaForInvitee) {
-          await updateOption('QuotaForInvitee', inputs.QuotaForInvitee);
+        if (originInputs['PointsRefreshTime'] !== inputs.PointsRefreshTime) {
+          await updateOption('PointsRefreshTime', inputs.PointsRefreshTime);
         }
-        if (originInputs['QuotaForInviter'] !== inputs.QuotaForInviter) {
-          await updateOption('QuotaForInviter', inputs.QuotaForInviter);
+        if (originInputs['PointsRefreshTimezone'] !== inputs.PointsRefreshTimezone) {
+          await updateOption('PointsRefreshTimezone', inputs.PointsRefreshTimezone);
         }
-        if (originInputs['PreConsumedQuota'] !== inputs.PreConsumedQuota) {
-          await updateOption('PreConsumedQuota', inputs.PreConsumedQuota);
+        if (originInputs['PreConsumedPoints'] !== inputs.PreConsumedPoints) {
+          await updateOption('PreConsumedPoints', inputs.PreConsumedPoints);
         }
         break;
       case 'general':
-        if (originInputs['TopUpLink'] !== inputs.TopUpLink) {
-          await updateOption('TopUpLink', inputs.TopUpLink);
-        }
         if (originInputs['ChatLink'] !== inputs.ChatLink) {
           await updateOption('ChatLink', inputs.ChatLink);
-        }
-        if (originInputs['QuotaPerUnit'] !== inputs.QuotaPerUnit) {
-          await updateOption('QuotaPerUnit', inputs.QuotaPerUnit);
         }
         if (originInputs['RetryTimes'] !== inputs.RetryTimes) {
           await updateOption('RetryTimes', inputs.RetryTimes);
@@ -186,51 +173,41 @@ const OperationSetting = () => {
     <Grid columns={1}>
       <Grid.Column>
         <Form loading={loading}>
-          <Header as='h3'>{t('setting.operation.quota.title')}</Header>
+          <Header as='h3'>积分配额</Header>
           <Form.Group widths='equal'>
             <Form.Input
-              label={t('setting.operation.quota.new_user')}
-              name='QuotaForNewUser'
+              label='分组每日积分(JSON)'
+              name='DailyPointsByGroup'
               onChange={handleInputChange}
               autoComplete='new-password'
-              value={inputs.QuotaForNewUser}
-              type='number'
-              min='0'
-              placeholder={t('setting.operation.quota.new_user_placeholder')}
+              value={inputs.DailyPointsByGroup}
+              placeholder='例如 {"default":100,"dev":200}'
             />
             <Form.Input
-              label={t('setting.operation.quota.pre_consume')}
-              name='PreConsumedQuota'
+              label='预扣积分'
+              name='PreConsumedPoints'
               onChange={handleInputChange}
               autoComplete='new-password'
-              value={inputs.PreConsumedQuota}
+              value={inputs.PreConsumedPoints}
               type='number'
               min='0'
-              placeholder={t('setting.operation.quota.pre_consume_placeholder')}
+              placeholder='请求开始时的预扣积分'
             />
             <Form.Input
-              label={t('setting.operation.quota.inviter_reward')}
-              name='QuotaForInviter'
+              label='刷新时间'
+              name='PointsRefreshTime'
               onChange={handleInputChange}
               autoComplete='new-password'
-              value={inputs.QuotaForInviter}
-              type='number'
-              min='0'
-              placeholder={t(
-                'setting.operation.quota.inviter_reward_placeholder'
-              )}
+              value={inputs.PointsRefreshTime}
+              placeholder='00:00'
             />
             <Form.Input
-              label={t('setting.operation.quota.invitee_reward')}
-              name='QuotaForInvitee'
+              label='刷新时区'
+              name='PointsRefreshTimezone'
               onChange={handleInputChange}
               autoComplete='new-password'
-              value={inputs.QuotaForInvitee}
-              type='number'
-              min='0'
-              placeholder={t(
-                'setting.operation.quota.invitee_reward_placeholder'
-              )}
+              value={inputs.PointsRefreshTimezone}
+              placeholder='Asia/Shanghai'
             />
           </Form.Group>
           <Form.Button
@@ -238,7 +215,7 @@ const OperationSetting = () => {
               submitConfig('quota').then();
             }}
           >
-            {t('setting.operation.quota.buttons.save')}
+            保存
           </Form.Button>
           <Divider />
           <Header as='h3'>{t('setting.operation.ratio.title')}</Header>
@@ -326,18 +303,6 @@ const OperationSetting = () => {
                 'setting.operation.monitor.max_response_time_placeholder'
               )}
             />
-            <Form.Input
-              label={t('setting.operation.monitor.quota_reminder')}
-              name='QuotaRemindThreshold'
-              onChange={handleInputChange}
-              autoComplete='new-password'
-              value={inputs.QuotaRemindThreshold}
-              type='number'
-              min='0'
-              placeholder={t(
-                'setting.operation.monitor.quota_reminder_placeholder'
-              )}
-            />
           </Form.Group>
           <Form.Group inline>
             <Form.Checkbox
@@ -362,19 +327,8 @@ const OperationSetting = () => {
           </Form.Button>
 
           <Divider />
-          <Header as='h3'>{t('setting.operation.general.title')}</Header>
+          <Header as='h3'>通用设置</Header>
           <Form.Group widths={4}>
-            <Form.Input
-              label={t('setting.operation.general.topup_link')}
-              name='TopUpLink'
-              onChange={handleInputChange}
-              autoComplete='new-password'
-              value={inputs.TopUpLink}
-              type='link'
-              placeholder={t(
-                'setting.operation.general.topup_link_placeholder'
-              )}
-            />
             <Form.Input
               label={t('setting.operation.general.chat_link')}
               name='ChatLink'
@@ -383,18 +337,6 @@ const OperationSetting = () => {
               value={inputs.ChatLink}
               type='link'
               placeholder={t('setting.operation.general.chat_link_placeholder')}
-            />
-            <Form.Input
-              label={t('setting.operation.general.quota_per_unit')}
-              name='QuotaPerUnit'
-              onChange={handleInputChange}
-              autoComplete='new-password'
-              value={inputs.QuotaPerUnit}
-              type='number'
-              step='0.01'
-              placeholder={t(
-                'setting.operation.general.quota_per_unit_placeholder'
-              )}
             />
             <Form.Input
               label={t('setting.operation.general.retry_times')}
@@ -411,12 +353,6 @@ const OperationSetting = () => {
             />
           </Form.Group>
           <Form.Group inline>
-            <Form.Checkbox
-              checked={inputs.DisplayInCurrencyEnabled === 'true'}
-              label={t('setting.operation.general.display_in_currency')}
-              name='DisplayInCurrencyEnabled'
-              onChange={handleInputChange}
-            />
             <Form.Checkbox
               checked={inputs.DisplayTokenStatEnabled === 'true'}
               label={t('setting.operation.general.display_token_stat')}

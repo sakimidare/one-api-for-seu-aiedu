@@ -8,10 +8,9 @@ import (
 )
 
 const (
-	BatchUpdateTypeUserQuota = iota
-	BatchUpdateTypeTokenQuota
-	BatchUpdateTypeUsedQuota
-	BatchUpdateTypeChannelUsedQuota
+	BatchUpdateTypeUserPoints = iota
+	BatchUpdateTypeUsedPoints
+	BatchUpdateTypeChannelUsedPoints
 	BatchUpdateTypeRequestCount
 	BatchUpdateTypeCount // if you add a new type, you need to add a new map and a new lock
 )
@@ -55,22 +54,17 @@ func batchUpdate() {
 		// TODO: maybe we can combine updates with same key?
 		for key, value := range store {
 			switch i {
-			case BatchUpdateTypeUserQuota:
-				err := increaseUserQuota(key, value)
+			case BatchUpdateTypeUserPoints:
+				err := increaseUserPoints(key, value)
 				if err != nil {
-					logger.SysError("failed to batch update user quota: " + err.Error())
+					logger.SysError("failed to batch update user points: " + err.Error())
 				}
-			case BatchUpdateTypeTokenQuota:
-				err := increaseTokenQuota(key, value)
-				if err != nil {
-					logger.SysError("failed to batch update token quota: " + err.Error())
-				}
-			case BatchUpdateTypeUsedQuota:
-				updateUserUsedQuota(key, value)
+			case BatchUpdateTypeUsedPoints:
+				updateUserUsedPoints(key, value)
 			case BatchUpdateTypeRequestCount:
 				updateUserRequestCount(key, int(value))
-			case BatchUpdateTypeChannelUsedQuota:
-				updateChannelUsedQuota(key, value)
+			case BatchUpdateTypeChannelUsedPoints:
+				updateChannelUsedPoints(key, value)
 			}
 		}
 	}

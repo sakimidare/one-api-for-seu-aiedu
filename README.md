@@ -433,6 +433,14 @@ https://openai.justsong.cn
 ![channel](https://user-images.githubusercontent.com/39998050/233837954-ae6683aa-5c4f-429f-a949-6645a83c9490.png)
 ![token](https://user-images.githubusercontent.com/39998050/233837971-dab488b7-6d96-43af-b640-a168e8d1c9bf.png)
 
+## 成员积分制
+
+- 管理员可在“系统设置 → 运营设置”中通过 `DailyPointsByGroup` 配置各用户组每日积分，例如 `{"default":1000,"dev":3000}`。
+- 系统按 `PointsRefreshTimezone` 时区，在 `PointsRefreshTime` 指定的时间覆盖重置成员剩余积分，并将当日已用积分清零；未配置的用户组重置为 0。
+- 文本请求积分按“提示 token + 补全 token × 补全倍率”计算，再乘模型倍率和用户组倍率；图片与音频按各自计量规则折算积分。
+- 请求开始时会预扣积分，请求成功后多退少补，失败时返还；所有 API 令牌共享所属成员的积分，不再设置独立令牌额度。
+- 从旧额度版本首次升级时，程序会把用户及渠道的历史额度字段一次性迁移到积分字段。升级前仍建议备份数据库。
+
 ## 常见问题
 1. 额度是什么？怎么计算的？One API 的额度计算有问题？
    + 额度 = 分组倍率 * 模型倍率 * （提示 token 数 + 补全 token 数 * 补全倍率）

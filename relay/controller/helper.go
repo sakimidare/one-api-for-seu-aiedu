@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -18,6 +17,7 @@ import (
 	"github.com/songquanpeng/one-api/common/logger"
 	"github.com/songquanpeng/one-api/model"
 	"github.com/songquanpeng/one-api/relay/adaptor/openai"
+	"github.com/songquanpeng/one-api/relay/billing"
 	billingratio "github.com/songquanpeng/one-api/relay/billing/ratio"
 	"github.com/songquanpeng/one-api/relay/channeltype"
 	"github.com/songquanpeng/one-api/relay/controller/validator"
@@ -57,70 +57,58 @@ func getPromptTokens(textRequest *relaymodel.GeneralOpenAIRequest, relayMode int
 	return 0
 }
 
-func getPreConsumedQuota(textRequest *relaymodel.GeneralOpenAIRequest, promptTokens int, ratio float64) int64 {
-	preConsumedTokens := config.PreConsumedQuota + int64(promptTokens)
+func getPreConsumedPoints(textRequest *relaymodel.GeneralOpenAIRequest, promptTokens int, ratio float64) int64 {
+	preConsumedTokens := config.PreConsumedPoints + int64(promptTokens)
 	if textRequest.MaxTokens != 0 {
 		preConsumedTokens += int64(textRequest.MaxTokens)
 	}
 	return int64(float64(preConsumedTokens) * ratio)
 }
 
-func preConsumeQuota(ctx context.Context, textRequest *relaymodel.GeneralOpenAIRequest, promptTokens int, ratio float64, meta *meta.Meta) (int64, *relaymodel.ErrorWithStatusCode) {
-	preConsumedQuota := getPreConsumedQuota(textRequest, promptTokens, ratio)
+func preConsumePoints(ctx context.Context, textRequest *relaymodel.GeneralOpenAIRequest, promptTokens int, ratio float64, meta *meta.Meta) (int64, *relaymodel.ErrorWithStatusCode) {
+	preConsumedPoints := getPreConsumedPoints(textRequest, promptTokens, ratio)
 
-	userQuota, err := model.CacheGetUserQuota(ctx, meta.UserId)
-	if err != nil {
-		return preConsumedQuota, openai.ErrorWrapper(err, "get_user_quota_failed", http.StatusInternalServerError)
-	}
-	if userQuota-preConsumedQuota < 0 {
-		return preConsumedQuota, openai.ErrorWrapper(errors.New("user quota is not enough"), "insufficient_user_quota", http.StatusForbidden)
-	}
-	err = model.CacheDecreaseUserQuota(meta.UserId, preConsumedQuota)
-	if err != nil {
-		return preConsumedQuota, openai.ErrorWrapper(err, "decrease_user_quota_failed", http.StatusInternalServerError)
-	}
-	if userQuota > 100*preConsumedQuota {
-		// in this case, we do not pre-consume quota
-		// because the user has enough quota
-		preConsumedQuota = 0
-		logger.Info(ctx, fmt.Sprintf("user %d has enough quota %d, trusted and no need to pre-consume", meta.UserId, userQuota))
-	}
-	if preConsumedQuota > 0 {
-		err := model.PreConsumeTokenQuota(meta.TokenId, preConsumedQuota)
+	if preConsumedPoints > 0 {
+		err := model.PreConsumeTokenPoints(meta.TokenId, preConsumedPoints)
 		if err != nil {
-			return preConsumedQuota, openai.ErrorWrapper(err, "pre_consume_token_quota_failed", http.StatusForbidden)
+			return preConsumedPoints, openai.ErrorWrapper(err, "pre_consume_token_points_failed", http.StatusForbidden)
+		}
+		if err := model.CacheUpdateUserPoints(ctx, meta.UserId); err != nil {
+			billing.ReturnPreConsumedPoints(ctx, preConsumedPoints, meta.TokenId, meta.UserId)
+			return preConsumedPoints, openai.ErrorWrapper(err, "update_user_points_cache_failed", http.StatusInternalServerError)
 		}
 	}
-	return preConsumedQuota, nil
+	return preConsumedPoints, nil
 }
 
-func postConsumeQuota(ctx context.Context, usage *relaymodel.Usage, meta *meta.Meta, textRequest *relaymodel.GeneralOpenAIRequest, ratio float64, preConsumedQuota int64, modelRatio float64, groupRatio float64, systemPromptReset bool) {
+func postConsumePoints(ctx context.Context, usage *relaymodel.Usage, meta *meta.Meta, textRequest *relaymodel.GeneralOpenAIRequest, ratio float64, preConsumedPoints int64, modelRatio float64, groupRatio float64, systemPromptReset bool) {
 	if usage == nil {
 		logger.Error(ctx, "usage is nil, which is unexpected")
+		billing.ReturnPreConsumedPoints(ctx, preConsumedPoints, meta.TokenId, meta.UserId)
 		return
 	}
-	var quota int64
+	var points int64
 	completionRatio := billingratio.GetCompletionRatio(textRequest.Model, meta.ChannelType)
 	promptTokens := usage.PromptTokens
 	completionTokens := usage.CompletionTokens
-	quota = int64(math.Ceil((float64(promptTokens) + float64(completionTokens)*completionRatio) * ratio))
-	if ratio != 0 && quota <= 0 {
-		quota = 1
+	points = int64(math.Ceil((float64(promptTokens) + float64(completionTokens)*completionRatio) * ratio))
+	if ratio != 0 && points <= 0 {
+		points = 1
 	}
 	totalTokens := promptTokens + completionTokens
 	if totalTokens == 0 {
 		// in this case, must be some error happened
 		// we cannot just return, because we may have to return the pre-consumed quota
-		quota = 0
+		points = 0
 	}
-	quotaDelta := quota - preConsumedQuota
-	err := model.PostConsumeTokenQuota(meta.TokenId, quotaDelta)
+	pointsDelta := points - preConsumedPoints
+	err := model.PostConsumeTokenPoints(meta.TokenId, pointsDelta)
 	if err != nil {
-		logger.Error(ctx, "error consuming token remain quota: "+err.Error())
+		logger.Error(ctx, "error consuming user points: "+err.Error())
 	}
-	err = model.CacheUpdateUserQuota(ctx, meta.UserId)
+	err = model.CacheUpdateUserPoints(ctx, meta.UserId)
 	if err != nil {
-		logger.Error(ctx, "error update user quota cache: "+err.Error())
+		logger.Error(ctx, "error update user points cache: "+err.Error())
 	}
 	logContent := fmt.Sprintf("倍率：%.2f × %.2f × %.2f", modelRatio, groupRatio, completionRatio)
 	model.RecordConsumeLog(ctx, &model.Log{
@@ -130,14 +118,14 @@ func postConsumeQuota(ctx context.Context, usage *relaymodel.Usage, meta *meta.M
 		CompletionTokens:  completionTokens,
 		ModelName:         textRequest.Model,
 		TokenName:         meta.TokenName,
-		Quota:             int(quota),
+		Points:            int(points),
 		Content:           logContent,
 		IsStream:          meta.IsStream,
 		ElapsedTime:       helper.CalcElapsedTime(meta.StartTime),
 		SystemPromptReset: systemPromptReset,
 	})
-	model.UpdateUserUsedQuotaAndRequestCount(meta.UserId, quota)
-	model.UpdateChannelUsedQuota(meta.ChannelId, quota)
+	model.UpdateUserUsedPointsAndRequestCount(meta.UserId, points)
+	model.UpdateChannelUsedPoints(meta.ChannelId, points)
 }
 
 func getMappedModelName(modelName string, mapping map[string]string) (string, bool) {

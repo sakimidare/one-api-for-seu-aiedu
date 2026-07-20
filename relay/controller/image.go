@@ -17,6 +17,7 @@ import (
 	"github.com/songquanpeng/one-api/model"
 	"github.com/songquanpeng/one-api/relay"
 	"github.com/songquanpeng/one-api/relay/adaptor/openai"
+	"github.com/songquanpeng/one-api/relay/billing"
 	billingratio "github.com/songquanpeng/one-api/relay/billing/ratio"
 	"github.com/songquanpeng/one-api/relay/channeltype"
 	"github.com/songquanpeng/one-api/relay/meta"
@@ -171,20 +172,30 @@ func RelayImageHelper(c *gin.Context, relayMode int) *relaymodel.ErrorWithStatus
 	modelRatio := billingratio.GetModelRatio(imageModel, meta.ChannelType)
 	groupRatio := billingratio.GetGroupRatio(meta.Group)
 	ratio := modelRatio * groupRatio
-	userQuota, err := model.CacheGetUserQuota(ctx, meta.UserId)
-
-	var quota int64
+	var points int64
 	switch meta.ChannelType {
 	case channeltype.Replicate:
 		// replicate always return 1 image
-		quota = int64(ratio * imageCostRatio * 1000)
+		points = int64(ratio * imageCostRatio * 1000)
 	default:
-		quota = int64(ratio*imageCostRatio*1000) * int64(imageRequest.N)
+		points = int64(ratio*imageCostRatio*1000) * int64(imageRequest.N)
 	}
 
-	if userQuota-quota < 0 {
-		return openai.ErrorWrapper(errors.New("user quota is not enough"), "insufficient_user_quota", http.StatusForbidden)
+	if points > 0 {
+		if err := model.PreConsumeTokenPoints(meta.TokenId, points); err != nil {
+			return openai.ErrorWrapper(err, "pre_consume_token_points_failed", http.StatusForbidden)
+		}
+		if err := model.CacheUpdateUserPoints(ctx, meta.UserId); err != nil {
+			billing.ReturnPreConsumedPoints(ctx, points, meta.TokenId, meta.UserId)
+			return openai.ErrorWrapper(err, "update_user_points_cache_failed", http.StatusInternalServerError)
+		}
 	}
+	succeed := false
+	defer func() {
+		if !succeed {
+			billing.ReturnPreConsumedPoints(ctx, points, meta.TokenId, meta.UserId)
+		}
+	}()
 
 	// do request
 	resp, err := adaptor.DoRequest(c, meta, requestBody)
@@ -194,21 +205,10 @@ func RelayImageHelper(c *gin.Context, relayMode int) *relaymodel.ErrorWithStatus
 	}
 
 	defer func(ctx context.Context) {
-		if resp != nil &&
-			resp.StatusCode != http.StatusCreated && // replicate returns 201
-			resp.StatusCode != http.StatusOK {
+		if !succeed {
 			return
 		}
-
-		err := model.PostConsumeTokenQuota(meta.TokenId, quota)
-		if err != nil {
-			logger.SysError("error consuming token remain quota: " + err.Error())
-		}
-		err = model.CacheUpdateUserQuota(ctx, meta.UserId)
-		if err != nil {
-			logger.SysError("error update user quota cache: " + err.Error())
-		}
-		if quota != 0 {
+		if points != 0 {
 			tokenName := c.GetString(ctxkey.TokenName)
 			logContent := fmt.Sprintf("倍率：%.2f × %.2f", modelRatio, groupRatio)
 			model.RecordConsumeLog(ctx, &model.Log{
@@ -218,12 +218,12 @@ func RelayImageHelper(c *gin.Context, relayMode int) *relaymodel.ErrorWithStatus
 				CompletionTokens: 0,
 				ModelName:        imageRequest.Model,
 				TokenName:        tokenName,
-				Quota:            int(quota),
+				Points:           int(points),
 				Content:          logContent,
 			})
-			model.UpdateUserUsedQuotaAndRequestCount(meta.UserId, quota)
+			model.UpdateUserUsedPointsAndRequestCount(meta.UserId, points)
 			channelId := c.GetInt(ctxkey.ChannelId)
-			model.UpdateChannelUsedQuota(channelId, quota)
+			model.UpdateChannelUsedPoints(channelId, points)
 		}
 	}(c.Request.Context())
 
@@ -233,6 +233,7 @@ func RelayImageHelper(c *gin.Context, relayMode int) *relaymodel.ErrorWithStatus
 		logger.Errorf(ctx, "respErr is not nil: %+v", respErr)
 		return respErr
 	}
+	succeed = true
 
 	return nil
 }

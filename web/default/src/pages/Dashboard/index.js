@@ -100,7 +100,7 @@ const Dashboard = () => {
         0
       ),
       todayQuota:
-        todayData.reduce((sum, item) => sum + item.Quota, 0) / 1000000,
+		 todayData.reduce((sum, item) => sum + item.Points, 0),
       todayTokens: todayData.reduce(
         (sum, item) => sum + item.PromptTokens + item.CompletionTokens,
         0
@@ -143,7 +143,7 @@ const Dashboard = () => {
     // 填充实际数据
     data.forEach((item) => {
       dailyData[item.Day].requests += item.RequestCount;
-      dailyData[item.Day].quota += item.Quota / 1000000;
+	  dailyData[item.Day].quota += item.Points;
       dailyData[item.Day].tokens += item.PromptTokens + item.CompletionTokens;
     });
 

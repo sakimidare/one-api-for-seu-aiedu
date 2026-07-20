@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { API, copy, showError, showSuccess, timestamp2string } from '../helpers';
 
 import { ITEMS_PER_PAGE } from '../constants';
-import { renderQuota } from '../helpers/render';
 import { Button, Dropdown, Form, Modal, Popconfirm, Popover, SplitButtonGroup, Table, Tag } from '@douyinfe/semi-ui';
 
 import { IconTreeTriangleDown } from '@douyinfe/semi-icons';
@@ -83,29 +82,6 @@ const TokensTable = () => {
         return (
           <div>
             {renderStatus(text, record.model_limits_enabled)}
-          </div>
-        );
-      }
-    },
-    {
-      title: '已用额度',
-      dataIndex: 'used_quota',
-      render: (text, record, index) => {
-        return (
-          <div>
-            {renderQuota(parseInt(text))}
-          </div>
-        );
-      }
-    },
-    {
-      title: '剩余额度',
-      dataIndex: 'remain_quota',
-      render: (text, record, index) => {
-        return (
-          <div>
-            {record.unlimited_quota ? <Tag size={'large'} color={'white'}>无限制</Tag> :
-              <Tag size={'large'} color={'light-blue'}>{renderQuota(parseInt(text))}</Tag>}
           </div>
         );
       }
@@ -544,17 +520,6 @@ const TokensTable = () => {
     setDropdownVisible(false);
   };
 
-  const renderSelectedOption = (orderBy) => {
-    switch (orderBy) {
-      case 'remain_quota':
-        return '按剩余额度排序';
-      case 'used_quota':
-        return '按已用额度排序';
-      default:
-        return '默认排序';
-    }
-  };
-
   return (
     <>
       <EditToken refresh={refresh} editingToken={editingToken} visiable={showEdit} handleClose={closeEdit}></EditToken>
@@ -614,21 +579,6 @@ const TokensTable = () => {
           await copyText(keys);
         }
       }>复制所选令牌到剪贴板</Button>
-      <Dropdown
-        trigger="click"
-        position="bottomLeft"
-        visible={dropdownVisible}
-        onVisibleChange={(visible) => setDropdownVisible(visible)}
-        render={
-          <Dropdown.Menu>
-            <Dropdown.Item onClick={() => handleOrderByChange('', { value: '' })}>默认排序</Dropdown.Item>
-            <Dropdown.Item onClick={() => handleOrderByChange('', { value: 'remain_quota' })}>按剩余额度排序</Dropdown.Item>
-            <Dropdown.Item onClick={() => handleOrderByChange('', { value: 'used_quota' })}>按已用额度排序</Dropdown.Item>
-          </Dropdown.Menu>
-        }
-      >
-      <Button style={{ marginLeft: '10px' }}>{renderSelectedOption(orderBy)}</Button>
-      </Dropdown>
     </>
   );
 };

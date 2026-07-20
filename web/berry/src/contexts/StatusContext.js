@@ -19,8 +19,6 @@ const StatusProvider = ({ children }) => {
         delete data.chat_link;
       }
       localStorage.setItem("siteInfo", JSON.stringify(data));
-      localStorage.setItem("quota_per_unit", data.quota_per_unit);
-      localStorage.setItem("display_in_currency", data.display_in_currency);
       dispatch({ type: SET_SITE_INFO, payload: data });
       if (
         data.version !== process.env.REACT_APP_VERSION &&

@@ -170,7 +170,7 @@ export default function ChannelTableRow({
             handle_action={handleResponseTime}
           />
         </TableCell>
-        <TableCell>{renderNumber(item.used_quota)}</TableCell>
+        <TableCell>{renderNumber(item.used_points)}</TableCell>
         <TableCell>
           <Tooltip
             title={"点击更新余额"}

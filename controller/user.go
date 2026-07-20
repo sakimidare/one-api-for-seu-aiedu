@@ -14,6 +14,7 @@ import (
 	"github.com/songquanpeng/one-api/common/config"
 	"github.com/songquanpeng/one-api/common/ctxkey"
 	"github.com/songquanpeng/one-api/common/i18n"
+	"github.com/songquanpeng/one-api/common/logger"
 	"github.com/songquanpeng/one-api/common/random"
 	"github.com/songquanpeng/one-api/model"
 )
@@ -385,6 +386,10 @@ func UpdateUser(c *gin.Context) {
 		})
 		return
 	}
+	if updatedUser.Points < 0 {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "积分不能为负数"})
+		return
+	}
 	originUser, err := model.GetUserById(updatedUser.Id, false)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -419,8 +424,15 @@ func UpdateUser(c *gin.Context) {
 		})
 		return
 	}
-	if originUser.Quota != updatedUser.Quota {
-		model.RecordLog(ctx, originUser.Id, model.LogTypeManage, fmt.Sprintf("管理员将用户额度从 %s修改为 %s", common.LogQuota(originUser.Quota), common.LogQuota(updatedUser.Quota)))
+	if err := model.SetUserPoints(updatedUser.Id, updatedUser.Points); err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	if err := model.CacheUpdateUserPoints(ctx, updatedUser.Id); err != nil {
+		logger.Error(ctx, "failed to update user points cache: "+err.Error())
+	}
+	if originUser.Points != updatedUser.Points {
+		model.RecordLog(ctx, originUser.Id, model.LogTypeManage, fmt.Sprintf("管理员将用户积分从 %s修改为 %s", common.LogPoints(originUser.Points), common.LogPoints(updatedUser.Points)))
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -559,6 +571,9 @@ func CreateUser(c *gin.Context) {
 	if user.DisplayName == "" {
 		user.DisplayName = user.Username
 	}
+	if user.Group == "" {
+		user.Group = "default"
+	}
 	myRole := c.GetInt("role")
 	if user.Role >= myRole {
 		c.JSON(http.StatusOK, gin.H{
@@ -572,6 +587,7 @@ func CreateUser(c *gin.Context) {
 		Username:    user.Username,
 		Password:    user.Password,
 		DisplayName: user.DisplayName,
+		Group:       user.Group,
 	}
 	if err := cleanUser.Insert(ctx, 0); err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -595,6 +611,7 @@ type ManageRequest struct {
 
 // ManageUser Only admin user can do this
 func ManageUser(c *gin.Context) {
+	ctx := c.Request.Context()
 	var req ManageRequest
 	err := json.NewDecoder(c.Request.Body).Decode(&req)
 
@@ -684,6 +701,22 @@ func ManageUser(c *gin.Context) {
 			return
 		}
 		user.Role = model.RoleCommonUser
+	case "reset_points":
+		user.Points = model.GetDailyPointsForGroup(user.Group)
+		user.UsedPoints = 0
+		if err := model.ResetUserPoints(user.Id, user.Points); err != nil {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+			return
+		}
+		if err := model.CacheUpdateUserPoints(ctx, user.Id); err != nil {
+			logger.Error(ctx, "failed to update user points cache: "+err.Error())
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "",
+			"data":    gin.H{"points": user.Points, "used_points": 0},
+		})
+		return
 	}
 
 	if err := user.Update(false); err != nil {
@@ -694,8 +727,10 @@ func ManageUser(c *gin.Context) {
 		return
 	}
 	clearUser := model.User{
-		Role:   user.Role,
-		Status: user.Status,
+		Role:       user.Role,
+		Status:     user.Status,
+		Points:     user.Points,
+		UsedPoints: user.UsedPoints,
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -740,74 +775,6 @@ func EmailBind(c *gin.Context) {
 	if user.Role == model.RoleRootUser {
 		config.RootUserEmail = email
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-	})
-	return
-}
-
-type topUpRequest struct {
-	Key string `json:"key"`
-}
-
-func TopUp(c *gin.Context) {
-	ctx := c.Request.Context()
-	req := topUpRequest{}
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
-	id := c.GetInt("id")
-	quota, err := model.Redeem(ctx, req.Key, id)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    quota,
-	})
-	return
-}
-
-type adminTopUpRequest struct {
-	UserId int    `json:"user_id"`
-	Quota  int    `json:"quota"`
-	Remark string `json:"remark"`
-}
-
-func AdminTopUp(c *gin.Context) {
-	ctx := c.Request.Context()
-	req := adminTopUpRequest{}
-	err := c.ShouldBindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
-	err = model.IncreaseUserQuota(req.UserId, int64(req.Quota))
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": err.Error(),
-		})
-		return
-	}
-	if req.Remark == "" {
-		req.Remark = fmt.Sprintf("通过 API 充值 %s", common.LogQuota(int64(req.Quota)))
-	}
-	model.RecordTopupLog(ctx, req.UserId, req.Remark, req.Quota)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

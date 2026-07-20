@@ -43,14 +43,20 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	modelRatio := billingratio.GetModelRatio(textRequest.Model, meta.ChannelType)
 	groupRatio := billingratio.GetGroupRatio(meta.Group)
 	ratio := modelRatio * groupRatio
-	// pre-consume quota
+	// pre-consume points
 	promptTokens := getPromptTokens(textRequest, meta.Mode)
 	meta.PromptTokens = promptTokens
-	preConsumedQuota, bizErr := preConsumeQuota(ctx, textRequest, promptTokens, ratio, meta)
+	preConsumedPoints, bizErr := preConsumePoints(ctx, textRequest, promptTokens, ratio, meta)
 	if bizErr != nil {
-		logger.Warnf(ctx, "preConsumeQuota failed: %+v", *bizErr)
+		logger.Warnf(ctx, "preConsumePoints failed: %+v", *bizErr)
 		return bizErr
 	}
+	settled := false
+	defer func() {
+		if !settled {
+			billing.ReturnPreConsumedPoints(ctx, preConsumedPoints, meta.TokenId, meta.UserId)
+		}
+	}()
 
 	adaptor := relay.GetAdaptor(meta.APIType)
 	if adaptor == nil {
@@ -71,7 +77,6 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 		return openai.ErrorWrapper(err, "do_request_failed", http.StatusInternalServerError)
 	}
 	if isErrorHappened(meta, resp) {
-		billing.ReturnPreConsumedQuota(ctx, preConsumedQuota, meta.TokenId)
 		return RelayErrorHandler(resp)
 	}
 
@@ -79,11 +84,11 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	usage, respErr := adaptor.DoResponse(c, resp, meta)
 	if respErr != nil {
 		logger.Errorf(ctx, "respErr is not nil: %+v", respErr)
-		billing.ReturnPreConsumedQuota(ctx, preConsumedQuota, meta.TokenId)
 		return respErr
 	}
-	// post-consume quota
-	go postConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio, groupRatio, systemPromptReset)
+	// post-consume points
+	settled = true
+	go postConsumePoints(ctx, usage, meta, textRequest, ratio, preConsumedPoints, modelRatio, groupRatio, systemPromptReset)
 	return nil
 }
 

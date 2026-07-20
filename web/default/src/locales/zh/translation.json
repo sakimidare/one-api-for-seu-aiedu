@@ -298,7 +298,8 @@
     "title": "操作日志",
     "search": "搜索日志...",
     "usage_details": "使用明细",
-    "total_quota": "总消耗额度",
+	"total_quota": "总消耗积分",
+	"total_points": "总消耗积分",
     "click_to_view": "点击查看",
     "type": {
       "select": "选择明细分类",
@@ -326,7 +327,8 @@
       "username_placeholder": "可选值",
       "prompt_tokens": "提示词消耗",
       "completion_tokens": "补全消耗",
-      "quota": "额度",
+	  "quota": "积分",
+	  "points": "积分",
       "detail": "详情"
     },
     "buttons": {
@@ -374,12 +376,15 @@
       "id": "ID",
       "username": "用户名",
       "group": "分组",
-      "quota": "额度",
+	  "quota": "积分",
+	  "points": "积分",
       "role_text": "角色",
       "status_text": "状态",
       "actions": "操作",
-      "remaining_quota": "剩余额度",
-      "used_quota": "已用额度",
+	  "remaining_quota": "剩余积分",
+	  "used_quota": "已用积分",
+	  "remaining_points": "剩余积分",
+	  "used_points": "已用积分",
       "request_count": "请求次数",
       "role_types": {
         "normal": "普通用户",
@@ -395,7 +400,9 @@
       "sort": {
         "default": "默认排序",
         "by_quota": "按剩余额度排序",
-        "by_used_quota": "按已用额度排序",
+		"by_used_quota": "按已用积分排序",
+		"by_points": "按剩余积分排序",
+		"by_used_points": "按已用积分排序",
         "by_request_count": "按请求次数排序"
       },
       "sort_by": "排序方式"
@@ -408,7 +415,8 @@
       "disable": "禁用",
       "edit": "编辑",
       "promote": "提升",
-      "demote": "降级"
+	  "demote": "降级",
+	  "reset_points": "重置积分"
     }
   },
   "dashboard": {
@@ -418,8 +426,8 @@
         "tooltip": "请求次数"
       },
       "quota": {
-        "title": "额度消费趋势",
-        "tooltip": "消费额度"
+		"title": "积分消费趋势",
+		"tooltip": "消费积分"
       },
       "tokens": {
         "title": "Token 消费趋势",

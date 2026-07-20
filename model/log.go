@@ -21,7 +21,7 @@ type Log struct {
 	Username          string `json:"username" gorm:"index:index_username_model_name,priority:2;default:''"`
 	TokenName         string `json:"token_name" gorm:"index;default:''"`
 	ModelName         string `json:"model_name" gorm:"index;index:index_username_model_name,priority:1;default:''"`
-	Quota             int    `json:"quota" gorm:"default:0"`
+	Points            int    `json:"points" gorm:"default:0;column:quota"`
 	PromptTokens      int    `json:"prompt_tokens" gorm:"default:0"`
 	CompletionTokens  int    `json:"completion_tokens" gorm:"default:0"`
 	ChannelId         int    `json:"channel" gorm:"index"`
@@ -33,7 +33,7 @@ type Log struct {
 
 const (
 	LogTypeUnknown = iota
-	LogTypeTopup
+	LogTypeTopup   // Kept for compatibility with historical log rows.
 	LogTypeConsume
 	LogTypeManage
 	LogTypeSystem
@@ -61,18 +61,6 @@ func RecordLog(ctx context.Context, userId int, logType int, content string) {
 		CreatedAt: helper.GetTimestamp(),
 		Type:      logType,
 		Content:   content,
-	}
-	recordLogHelper(ctx, log)
-}
-
-func RecordTopupLog(ctx context.Context, userId int, content string, quota int) {
-	log := &Log{
-		UserId:    userId,
-		Username:  GetUsernameById(userId),
-		CreatedAt: helper.GetTimestamp(),
-		Type:      LogTypeTopup,
-		Content:   content,
-		Quota:     quota,
 	}
 	recordLogHelper(ctx, log)
 }
@@ -155,7 +143,7 @@ func SearchUserLogs(userId int, keyword string) (logs []*Log, err error) {
 	return logs, err
 }
 
-func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int) (quota int64) {
+func SumUsedPoints(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int) (points int64) {
 	ifnull := "ifnull"
 	if common.UsingPostgreSQL {
 		ifnull = "COALESCE"
@@ -179,8 +167,8 @@ func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelNa
 	if channel != 0 {
 		tx = tx.Where("channel_id = ?", channel)
 	}
-	tx.Where("type = ?", LogTypeConsume).Scan(&quota)
-	return quota
+	tx.Where("type = ?", LogTypeConsume).Scan(&points)
+	return points
 }
 
 func SumUsedToken(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string) (token int) {
@@ -217,7 +205,7 @@ type LogStatistic struct {
 	Day              string `gorm:"column:day"`
 	ModelName        string `gorm:"column:model_name"`
 	RequestCount     int    `gorm:"column:request_count"`
-	Quota            int    `gorm:"column:quota"`
+	Points           int    `gorm:"column:points"`
 	PromptTokens     int    `gorm:"column:prompt_tokens"`
 	CompletionTokens int    `gorm:"column:completion_tokens"`
 }
@@ -236,16 +224,16 @@ func SearchLogsByDayAndModel(userId, start, end int) (LogStatistics []*LogStatis
 	err = LOG_DB.Raw(`
 		SELECT `+groupSelect+`,
 		model_name, count(1) as request_count,
-		sum(quota) as quota,
+		sum(quota) as points,
 		sum(prompt_tokens) as prompt_tokens,
 		sum(completion_tokens) as completion_tokens
 		FROM logs
-		WHERE type=2
+		WHERE type=?
 		AND user_id= ?
 		AND created_at BETWEEN ? AND ?
 		GROUP BY day, model_name
 		ORDER BY day, model_name
-	`, userId, start, end).Scan(&LogStatistics).Error
+	`, LogTypeConsume, userId, start, end).Scan(&LogStatistics).Error
 
 	return LogStatistics, err
 }

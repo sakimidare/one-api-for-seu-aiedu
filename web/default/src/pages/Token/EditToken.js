@@ -3,9 +3,6 @@ import { useTranslation } from 'react-i18next';
 import {
   Button,
   Form,
-  Header,
-  Message,
-  Segment,
   Card,
 } from 'semantic-ui-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -16,7 +13,6 @@ import {
   showSuccess,
   timestamp2string,
 } from '../../helpers';
-import { renderQuotaWithPrompt } from '../../helpers/render';
 
 const EditToken = () => {
   const { t } = useTranslation();
@@ -27,14 +23,12 @@ const EditToken = () => {
   const [modelOptions, setModelOptions] = useState([]);
   const originInputs = {
     name: '',
-    remain_quota: isEdit ? 0 : 500000,
     expired_time: -1,
-    unlimited_quota: false,
     models: [],
     subnet: '',
   };
   const [inputs, setInputs] = useState(originInputs);
-  const { name, remain_quota, expired_time, unlimited_quota } = inputs;
+  const { name, expired_time } = inputs;
   const navigate = useNavigate();
   const handleInputChange = (e, { name, value }) => {
     setInputs((inputs) => ({ ...inputs, [name]: value }));
@@ -55,10 +49,6 @@ const EditToken = () => {
     } else {
       setInputs({ ...inputs, expired_time: -1 });
     }
-  };
-
-  const setUnlimitedQuota = () => {
-    setInputs({ ...inputs, unlimited_quota: !unlimited_quota });
   };
 
   const loadToken = async () => {
@@ -120,7 +110,6 @@ const EditToken = () => {
   const submit = async () => {
     if (!isEdit && inputs.name === '') return;
     let localInputs = inputs;
-    localInputs.remain_quota = parseInt(localInputs.remain_quota);
     if (localInputs.expired_time !== -1) {
       let time = Date.parse(localInputs.expired_time);
       if (isNaN(time)) {
@@ -252,32 +241,6 @@ const EditToken = () => {
                 {t('token.edit.buttons.expire_1_minute')}
               </Button>
             </div>
-            <Message>{t('token.edit.quota_notice')}</Message>
-            <Form.Field>
-              <Form.Input
-                label={`${t('token.edit.quota')}${renderQuotaWithPrompt(
-                  remain_quota,
-                  t
-                )}`}
-                name='remain_quota'
-                placeholder={t('token.edit.quota_placeholder')}
-                onChange={handleInputChange}
-                value={remain_quota}
-                autoComplete='new-password'
-                type='number'
-                disabled={unlimited_quota}
-              />
-            </Form.Field>
-            <Button
-              type={'button'}
-              onClick={() => {
-                setUnlimitedQuota();
-              }}
-            >
-              {unlimited_quota
-                ? t('token.edit.buttons.cancel_unlimited')
-                : t('token.edit.buttons.unlimited_quota')}
-            </Button>
             <Button floated='right' positive onClick={submit}>
               {t('token.edit.buttons.submit')}
             </Button>

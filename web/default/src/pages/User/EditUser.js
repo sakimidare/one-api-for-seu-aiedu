@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Button, Form, Card } from 'semantic-ui-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API, showError, showSuccess } from '../../helpers';
-import { renderQuota, renderQuotaWithPrompt } from '../../helpers/render';
 
 const EditUser = () => {
   const { t } = useTranslation();
@@ -17,7 +16,7 @@ const EditUser = () => {
     github_id: '',
     wechat_id: '',
     email: '',
-    quota: 0,
+    points: 0,
     group: 'default',
   });
   const [groupOptions, setGroupOptions] = useState([]);
@@ -28,7 +27,7 @@ const EditUser = () => {
     github_id,
     wechat_id,
     email,
-    quota,
+    points,
     group,
   } = inputs;
   const handleInputChange = (e, { name, value }) => {
@@ -79,8 +78,8 @@ const EditUser = () => {
     let res = undefined;
     if (userId) {
       let data = { ...inputs, id: parseInt(userId) };
-      if (typeof data.quota === 'string') {
-        data.quota = parseInt(data.quota);
+      if (typeof data.points === 'string') {
+        data.points = parseInt(data.points);
       }
       res = await API.put(`/api/user/`, data);
     } else {
@@ -151,14 +150,11 @@ const EditUser = () => {
                 </Form.Field>
                 <Form.Field>
                   <Form.Input
-                    label={`${t('user.edit.quota')}${renderQuotaWithPrompt(
-                      quota,
-                      t
-                    )}`}
-                    name='quota'
-                    placeholder={t('user.edit.quota_placeholder')}
+                    label='积分'
+                    name='points'
+                    placeholder='请输入新的剩余积分'
                     onChange={handleInputChange}
-                    value={quota}
+                    value={points}
                     type={'number'}
                     autoComplete='new-password'
                   />

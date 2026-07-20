@@ -15,7 +15,6 @@ import {
   FormControl,
   InputLabel,
   OutlinedInput,
-  InputAdornment,
   Autocomplete,
   Checkbox,
   TextField,
@@ -26,7 +25,7 @@ import {
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { renderQuotaWithPrompt, showSuccess, showError } from 'utils/common';
+import { showSuccess, showError } from 'utils/common';
 import { API } from 'utils/api';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
@@ -39,17 +38,13 @@ const filter = createFilterOptions();
 const validationSchema = Yup.object().shape({
   is_edit: Yup.boolean(),
   name: Yup.string().required('名称 不能为空'),
-  remain_quota: Yup.number().min(0, '必须大于等于0'),
-  expired_time: Yup.number(),
-  unlimited_quota: Yup.boolean()
+  expired_time: Yup.number()
 });
 
 const originInputs = {
   is_edit: false,
   name: '',
-  remain_quota: 0,
   expired_time: -1,
-  unlimited_quota: false,
   subnet: '',
   models: []
 };
@@ -62,7 +57,6 @@ const EditModal = ({ open, tokenId, onCancel, onOk }) => {
   const submit = async (values, { setErrors, setStatus, setSubmitting }) => {
     setSubmitting(true);
 
-    values.remain_quota = parseInt(values.remain_quota);
     let res;
     let models = values.models.join(',');
     if (values.is_edit) {
@@ -135,7 +129,6 @@ const EditModal = ({ open, tokenId, onCancel, onOk }) => {
       </DialogTitle>
       <Divider />
       <DialogContent>
-        <Alert severity="info">注意，令牌的额度仅用于限制令牌本身的最大额度使用量，实际的使用受到账户的剩余额度限制。</Alert>
         <Formik initialValues={inputs} enableReinitialize validationSchema={validationSchema} onSubmit={submit}>
           {({ errors, handleBlur, handleChange, handleSubmit, touched, values, setFieldError, setFieldValue, isSubmitting }) => (
             <form noValidate onSubmit={handleSubmit}>
@@ -267,34 +260,6 @@ const EditModal = ({ open, tokenId, onCancel, onOk }) => {
                 }}
               />{' '}
               永不过期
-              <FormControl fullWidth error={Boolean(touched.remain_quota && errors.remain_quota)} sx={{ ...theme.typography.otherInput }}>
-                <InputLabel htmlFor="channel-remain_quota-label">额度</InputLabel>
-                <OutlinedInput
-                  id="channel-remain_quota-label"
-                  label="额度"
-                  type="number"
-                  value={values.remain_quota}
-                  name="remain_quota"
-                  endAdornment={<InputAdornment position="end">{renderQuotaWithPrompt(values.remain_quota)}</InputAdornment>}
-                  onBlur={handleBlur}
-                  onChange={handleChange}
-                  aria-describedby="helper-text-channel-remain_quota-label"
-                  disabled={values.unlimited_quota}
-                />
-
-                {touched.remain_quota && errors.remain_quota && (
-                  <FormHelperText error id="helper-tex-channel-remain_quota-label">
-                    {errors.remain_quota}
-                  </FormHelperText>
-                )}
-              </FormControl>
-              <Switch
-                checked={values.unlimited_quota === true}
-                onClick={() => {
-                  setFieldValue('unlimited_quota', !values.unlimited_quota);
-                }}
-              />{' '}
-              无限额度
               <DialogActions>
                 <Button onClick={onCancel}>取消</Button>
                 <Button disableElevation disabled={isSubmitting} type="submit" variant="contained" color="primary">

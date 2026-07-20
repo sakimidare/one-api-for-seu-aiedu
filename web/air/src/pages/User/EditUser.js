@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API, isMobile, showError, showSuccess } from '../../helpers';
-import { renderQuotaWithPrompt } from '../../helpers/render';
 import Title from '@douyinfe/semi-ui/lib/es/typography/title';
 import { Button, Divider, Input, Select, SideSheet, Space, Spin, Typography } from '@douyinfe/semi-ui';
 
@@ -15,11 +14,11 @@ const EditUser = (props) => {
     github_id: '',
     wechat_id: '',
     email: '',
-    quota: 0,
+    points: 0,
     group: 'default'
   });
   const [groupOptions, setGroupOptions] = useState([]);
-  const { username, display_name, password, github_id, wechat_id, telegram_id, email, quota, group } =
+  const { username, display_name, password, github_id, wechat_id, telegram_id, email, points, group } =
     inputs;
   const handleInputChange = (name, value) => {
     setInputs((inputs) => ({ ...inputs, [name]: value }));
@@ -69,8 +68,8 @@ const EditUser = (props) => {
     let res = undefined;
     if (userId) {
       let data = { ...inputs, id: parseInt(userId) };
-      if (typeof data.quota === 'string') {
-        data.quota = parseInt(data.quota);
+      if (typeof data.points === 'string') {
+        data.points = parseInt(data.points);
       }
       res = await API.put(`/api/user/`, data);
     } else {
@@ -161,13 +160,13 @@ const EditUser = (props) => {
                 optionList={groupOptions}
               />
               <div style={{ marginTop: 20 }}>
-                <Typography.Text>{`剩余额度${renderQuotaWithPrompt(quota)}`}</Typography.Text>
+                <Typography.Text>剩余积分</Typography.Text>
               </div>
               <Input
-                name="quota"
-                placeholder={'请输入新的剩余额度'}
-                onChange={value => handleInputChange('quota', value)}
-                value={quota}
+                name="points"
+                placeholder={'请输入新的剩余积分'}
+                onChange={value => handleInputChange('points', value)}
+                value={points}
                 type={'number'}
                 autoComplete="new-password"
               />

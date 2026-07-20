@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/songquanpeng/one-api/common"
 	"github.com/songquanpeng/one-api/common/config"
@@ -41,22 +42,20 @@ func CreateRootAccountIfNeed() error {
 			Status:      UserStatusEnabled,
 			DisplayName: "Root User",
 			AccessToken: accessToken,
-			Quota:       500000000000000,
+			Points:      GetDailyPointsForGroup("default"),
 		}
 		DB.Create(&rootUser)
 		if config.InitialRootToken != "" {
 			logger.SysLog("creating initial root token as requested")
 			token := Token{
-				Id:             1,
-				UserId:         rootUser.Id,
-				Key:            config.InitialRootToken,
-				Status:         TokenStatusEnabled,
-				Name:           "Initial Root Token",
-				CreatedTime:    helper.GetTimestamp(),
-				AccessedTime:   helper.GetTimestamp(),
-				ExpiredTime:    -1,
-				RemainQuota:    500000000000000,
-				UnlimitedQuota: true,
+				Id:           1,
+				UserId:       rootUser.Id,
+				Key:          config.InitialRootToken,
+				Status:       TokenStatusEnabled,
+				Name:         "Initial Root Token",
+				CreatedTime:  helper.GetTimestamp(),
+				AccessedTime: helper.GetTimestamp(),
+				ExpiredTime:  -1,
 			}
 			DB.Create(&token)
 		}
@@ -148,9 +147,6 @@ func migrateDB() error {
 	if err = DB.AutoMigrate(&Option{}); err != nil {
 		return err
 	}
-	if err = DB.AutoMigrate(&Redemption{}); err != nil {
-		return err
-	}
 	if err = DB.AutoMigrate(&Ability{}); err != nil {
 		return err
 	}
@@ -160,7 +156,40 @@ func migrateDB() error {
 	if err = DB.AutoMigrate(&Channel{}); err != nil {
 		return err
 	}
-	return nil
+	return migratePointsV1()
+}
+
+func migratePointsV1() error {
+	const migrationKey = "PointsMigrationV1"
+	var migration Option
+	if err := DB.Where("key = ?", migrationKey).First(&migration).Error; err == nil {
+		return nil
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	tx := DB.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	rollback := func(err error) error {
+		tx.Rollback()
+		return err
+	}
+	if tx.Migrator().HasColumn("users", "quota") {
+		if err := tx.Exec("UPDATE users SET points = quota, used_points = used_quota").Error; err != nil {
+			return rollback(err)
+		}
+	}
+	if tx.Migrator().HasColumn("channels", "used_quota") {
+		if err := tx.Exec("UPDATE channels SET used_points = used_quota").Error; err != nil {
+			return rollback(err)
+		}
+	}
+	if err := tx.Create(&Option{Key: migrationKey, Value: "completed"}).Error; err != nil {
+		return rollback(err)
+	}
+	return tx.Commit().Error
 }
 
 func InitLogDB() {

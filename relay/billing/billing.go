@@ -8,45 +8,46 @@ import (
 	"github.com/songquanpeng/one-api/model"
 )
 
-func ReturnPreConsumedQuota(ctx context.Context, preConsumedQuota int64, tokenId int) {
-	if preConsumedQuota != 0 {
+func ReturnPreConsumedPoints(ctx context.Context, preConsumedPoints int64, tokenId int, userId int) {
+	if preConsumedPoints != 0 {
 		go func(ctx context.Context) {
-			// return pre-consumed quota
-			err := model.PostConsumeTokenQuota(tokenId, -preConsumedQuota)
+			err := model.PostConsumeTokenPoints(tokenId, -preConsumedPoints)
 			if err != nil {
-				logger.Error(ctx, "error return pre-consumed quota: "+err.Error())
+				logger.Error(ctx, "error return pre-consumed points: "+err.Error())
+				return
+			}
+			if err := model.CacheUpdateUserPoints(ctx, userId); err != nil {
+				logger.Error(ctx, "error update user points cache: "+err.Error())
 			}
 		}(ctx)
 	}
 }
 
-func PostConsumeQuota(ctx context.Context, tokenId int, quotaDelta int64, totalQuota int64, userId int, channelId int, modelRatio float64, groupRatio float64, modelName string, tokenName string) {
-	// quotaDelta is remaining quota to be consumed
-	err := model.PostConsumeTokenQuota(tokenId, quotaDelta)
+func PostConsumePoints(ctx context.Context, tokenId int, pointsDelta int64, totalPoints int64, userId int, channelId int, modelRatio float64, groupRatio float64, modelName string, tokenName string) {
+	err := model.PostConsumeTokenPoints(tokenId, pointsDelta)
 	if err != nil {
-		logger.SysError("error consuming token remain quota: " + err.Error())
+		logger.SysError("error consuming user points: " + err.Error())
 	}
-	err = model.CacheUpdateUserQuota(ctx, userId)
+	err = model.CacheUpdateUserPoints(ctx, userId)
 	if err != nil {
-		logger.SysError("error update user quota cache: " + err.Error())
+		logger.SysError("error update user points cache: " + err.Error())
 	}
-	// totalQuota is total quota consumed
-	if totalQuota != 0 {
+	if totalPoints != 0 {
 		logContent := fmt.Sprintf("倍率：%.2f × %.2f", modelRatio, groupRatio)
 		model.RecordConsumeLog(ctx, &model.Log{
 			UserId:           userId,
 			ChannelId:        channelId,
-			PromptTokens:     int(totalQuota),
+			PromptTokens:     int(totalPoints),
 			CompletionTokens: 0,
 			ModelName:        modelName,
 			TokenName:        tokenName,
-			Quota:            int(totalQuota),
+			Points:           int(totalPoints),
 			Content:          logContent,
 		})
-		model.UpdateUserUsedQuotaAndRequestCount(userId, totalQuota)
-		model.UpdateChannelUsedQuota(channelId, totalQuota)
+		model.UpdateUserUsedPointsAndRequestCount(userId, totalPoints)
+		model.UpdateChannelUsedPoints(channelId, totalPoints)
 	}
-	if totalQuota <= 0 {
-		logger.Error(ctx, fmt.Sprintf("totalQuota consumed is %d, something is wrong", totalQuota))
+	if totalPoints <= 0 {
+		logger.Error(ctx, fmt.Sprintf("totalPoints consumed is %d, something is wrong", totalPoints))
 	}
 }

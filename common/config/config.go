@@ -16,10 +16,7 @@ var SystemName = "One API"
 var ServerAddress = "http://localhost:3000"
 var Footer = ""
 var Logo = ""
-var TopUpLink = ""
 var ChatLink = ""
-var QuotaPerUnit = 500 * 1000.0 // $0.002 / 1K tokens
-var DisplayInCurrencyEnabled = true
 var DisplayTokenStatEnabled = true
 
 // Any options with "Secret", "Token" in its key won't be return by GetOptions
@@ -89,14 +86,14 @@ var MessagePusherToken = ""
 var TurnstileSiteKey = ""
 var TurnstileSecretKey = ""
 
-var QuotaForNewUser int64 = 0
-var QuotaForInviter int64 = 0
-var QuotaForInvitee int64 = 0
+var DailyPointsByGroup = "{\"default\":0}"
+var PointsRefreshTime = "00:00"
+var PointsRefreshTimezone = "Asia/Shanghai"
+var LastPointsRefreshDate = ""
 var ChannelDisableThreshold = 5.0
 var AutomaticDisableChannelEnabled = false
 var AutomaticEnableChannelEnabled = false
-var QuotaRemindThreshold int64 = 1000
-var PreConsumedQuota int64 = 500
+var PreConsumedPoints int64 = 500
 var ApproximateTokenEnabled = false
 var RetryTimes = 0
 

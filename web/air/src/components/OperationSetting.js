@@ -5,22 +5,18 @@ import { API, showError, showSuccess, timestamp2string, verifyJSON } from '../he
 const OperationSetting = () => {
   let now = new Date();
   let [inputs, setInputs] = useState({
-    QuotaForNewUser: 0,
-    QuotaForInviter: 0,
-    QuotaForInvitee: 0,
-    QuotaRemindThreshold: 0,
-    PreConsumedQuota: 0,
+    DailyPointsByGroup: '{"default":0}',
+    PointsRefreshTime: '00:00',
+    PointsRefreshTimezone: 'Asia/Shanghai',
+    PreConsumedPoints: 0,
     ModelRatio: '',
     CompletionRatio: '',
     GroupRatio: '',
-    TopUpLink: '',
     ChatLink: '',
-    QuotaPerUnit: 0,
     AutomaticDisableChannelEnabled: '',
     AutomaticEnableChannelEnabled: '',
     ChannelDisableThreshold: 0,
     LogConsumeEnabled: '',
-    DisplayInCurrencyEnabled: '',
     DisplayTokenStatEnabled: '',
     ApproximateTokenEnabled: '',
     RetryTimes: 0
@@ -86,9 +82,6 @@ const OperationSetting = () => {
         if (originInputs['ChannelDisableThreshold'] !== inputs.ChannelDisableThreshold) {
           await updateOption('ChannelDisableThreshold', inputs.ChannelDisableThreshold);
         }
-        if (originInputs['QuotaRemindThreshold'] !== inputs.QuotaRemindThreshold) {
-          await updateOption('QuotaRemindThreshold', inputs.QuotaRemindThreshold);
-        }
         break;
       case 'ratio':
         if (originInputs['ModelRatio'] !== inputs.ModelRatio) {
@@ -114,28 +107,26 @@ const OperationSetting = () => {
         }
         break;
       case 'quota':
-        if (originInputs['QuotaForNewUser'] !== inputs.QuotaForNewUser) {
-          await updateOption('QuotaForNewUser', inputs.QuotaForNewUser);
+        if (originInputs['DailyPointsByGroup'] !== inputs.DailyPointsByGroup) {
+          if (!verifyJSON(inputs.DailyPointsByGroup)) {
+            showError('分组积分配置不是合法的 JSON 字符串');
+            return;
+          }
+          await updateOption('DailyPointsByGroup', inputs.DailyPointsByGroup);
         }
-        if (originInputs['QuotaForInvitee'] !== inputs.QuotaForInvitee) {
-          await updateOption('QuotaForInvitee', inputs.QuotaForInvitee);
+        if (originInputs['PointsRefreshTime'] !== inputs.PointsRefreshTime) {
+          await updateOption('PointsRefreshTime', inputs.PointsRefreshTime);
         }
-        if (originInputs['QuotaForInviter'] !== inputs.QuotaForInviter) {
-          await updateOption('QuotaForInviter', inputs.QuotaForInviter);
+        if (originInputs['PointsRefreshTimezone'] !== inputs.PointsRefreshTimezone) {
+          await updateOption('PointsRefreshTimezone', inputs.PointsRefreshTimezone);
         }
-        if (originInputs['PreConsumedQuota'] !== inputs.PreConsumedQuota) {
-          await updateOption('PreConsumedQuota', inputs.PreConsumedQuota);
+        if (originInputs['PreConsumedPoints'] !== inputs.PreConsumedPoints) {
+          await updateOption('PreConsumedPoints', inputs.PreConsumedPoints);
         }
         break;
       case 'general':
-        if (originInputs['TopUpLink'] !== inputs.TopUpLink) {
-          await updateOption('TopUpLink', inputs.TopUpLink);
-        }
         if (originInputs['ChatLink'] !== inputs.ChatLink) {
           await updateOption('ChatLink', inputs.ChatLink);
-        }
-        if (originInputs['QuotaPerUnit'] !== inputs.QuotaPerUnit) {
-          await updateOption('QuotaPerUnit', inputs.QuotaPerUnit);
         }
         if (originInputs['RetryTimes'] !== inputs.RetryTimes) {
           await updateOption('RetryTimes', inputs.RetryTimes);
@@ -164,15 +155,6 @@ const OperationSetting = () => {
           </Header>
           <Form.Group widths={4}>
             <Form.Input
-              label='充值链接'
-              name='TopUpLink'
-              onChange={handleInputChange}
-              autoComplete='new-password'
-              value={inputs.TopUpLink}
-              type='link'
-              placeholder='例如发卡网站的购买链接'
-            />
-            <Form.Input
               label='聊天页面链接'
               name='ChatLink'
               onChange={handleInputChange}
@@ -180,16 +162,6 @@ const OperationSetting = () => {
               value={inputs.ChatLink}
               type='link'
               placeholder='例如 ChatGPT Next Web 的部署地址'
-            />
-            <Form.Input
-              label='单位美元额度'
-              name='QuotaPerUnit'
-              onChange={handleInputChange}
-              autoComplete='new-password'
-              value={inputs.QuotaPerUnit}
-              type='number'
-              step='0.01'
-              placeholder='一单位货币能兑换的额度'
             />
             <Form.Input
               label='失败重试次数'
@@ -204,12 +176,6 @@ const OperationSetting = () => {
             />
           </Form.Group>
           <Form.Group inline>
-            <Form.Checkbox
-              checked={inputs.DisplayInCurrencyEnabled === 'true'}
-              label='以货币形式显示额度'
-              name='DisplayInCurrencyEnabled'
-              onChange={handleInputChange}
-            />
             <Form.Checkbox
               checked={inputs.DisplayTokenStatEnabled === 'true'}
               label='Billing 相关 API 显示令牌额度而非用户额度'
@@ -263,16 +229,6 @@ const OperationSetting = () => {
               min='0'
               placeholder='单位秒，当运行渠道全部测试时，超过此时间将自动禁用渠道'
             />
-            <Form.Input
-              label='额度提醒阈值'
-              name='QuotaRemindThreshold'
-              onChange={handleInputChange}
-              autoComplete='new-password'
-              value={inputs.QuotaRemindThreshold}
-              type='number'
-              min='0'
-              placeholder='低于此额度时将发送邮件提醒用户'
-            />
           </Form.Group>
           <Form.Group inline>
             <Form.Checkbox
@@ -293,53 +249,47 @@ const OperationSetting = () => {
           }}>保存监控设置</Form.Button>
           <Divider />
           <Header as='h3'>
-            额度设置
+            积分设置
           </Header>
           <Form.Group widths={4}>
             <Form.Input
-              label='新用户初始额度'
-              name='QuotaForNewUser'
+              label='分组每日积分(JSON)'
+              name='DailyPointsByGroup'
               onChange={handleInputChange}
               autoComplete='new-password'
-              value={inputs.QuotaForNewUser}
-              type='number'
-              min='0'
-              placeholder='例如：100'
+              value={inputs.DailyPointsByGroup}
+              placeholder='例如 {"default":1000,"dev":3000}'
             />
             <Form.Input
-              label='请求预扣费额度'
-              name='PreConsumedQuota'
+              label='请求预扣积分'
+              name='PreConsumedPoints'
               onChange={handleInputChange}
               autoComplete='new-password'
-              value={inputs.PreConsumedQuota}
+              value={inputs.PreConsumedPoints}
               type='number'
               min='0'
               placeholder='请求结束后多退少补'
             />
             <Form.Input
-              label='邀请新用户奖励额度'
-              name='QuotaForInviter'
+              label='刷新时间'
+              name='PointsRefreshTime'
               onChange={handleInputChange}
               autoComplete='new-password'
-              value={inputs.QuotaForInviter}
-              type='number'
-              min='0'
-              placeholder='例如：2000'
+              value={inputs.PointsRefreshTime}
+              placeholder='00:00'
             />
             <Form.Input
-              label='新用户使用邀请码奖励额度'
-              name='QuotaForInvitee'
+              label='刷新时区'
+              name='PointsRefreshTimezone'
               onChange={handleInputChange}
               autoComplete='new-password'
-              value={inputs.QuotaForInvitee}
-              type='number'
-              min='0'
-              placeholder='例如：1000'
+              value={inputs.PointsRefreshTimezone}
+              placeholder='Asia/Shanghai'
             />
           </Form.Group>
           <Form.Button onClick={() => {
             submitConfig('quota').then();
-          }}>保存额度设置</Form.Button>
+          }}>保存积分设置</Form.Button>
           <Divider />
           <Header as='h3'>
             倍率设置

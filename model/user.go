@@ -45,9 +45,9 @@ type User struct {
 	OidcId           string `json:"oidc_id" gorm:"column:oidc_id;index"`
 	VerificationCode string `json:"verification_code" gorm:"-:all"`                                    // this field is only for Email verification, don't save it to database!
 	AccessToken      string `json:"access_token" gorm:"type:char(32);column:access_token;uniqueIndex"` // this token is for system management
-	Quota            int64  `json:"quota" gorm:"bigint;default:0"`
-	UsedQuota        int64  `json:"used_quota" gorm:"bigint;default:0;column:used_quota"` // used quota
-	RequestCount     int    `json:"request_count" gorm:"type:int;default:0;"`             // request number
+	Points           int64  `json:"points" gorm:"bigint;default:0"`
+	UsedPoints       int64  `json:"used_points" gorm:"bigint;default:0;column:used_points"`
+	RequestCount     int    `json:"request_count" gorm:"type:int;default:0;"` // request number
 	Group            string `json:"group" gorm:"type:varchar(32);default:'default'"`
 	AffCode          string `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
 	InviterId        int    `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
@@ -63,10 +63,10 @@ func GetAllUsers(startIdx int, num int, order string) (users []*User, err error)
 	query := DB.Limit(num).Offset(startIdx).Omit("password").Where("status != ?", UserStatusDeleted)
 
 	switch order {
-	case "quota":
-		query = query.Order("quota desc")
-	case "used_quota":
-		query = query.Order("used_quota desc")
+	case "points":
+		query = query.Order("points desc")
+	case "used_points":
+		query = query.Order("used_points desc")
 	case "request_count":
 		query = query.Order("request_count desc")
 	default:
@@ -125,36 +125,27 @@ func (user *User) Insert(ctx context.Context, inviterId int) error {
 			return err
 		}
 	}
-	user.Quota = config.QuotaForNewUser
+	if user.Group == "" {
+		user.Group = "default"
+	}
+	user.Points = GetDailyPointsForGroup(user.Group)
 	user.AccessToken = random.GetUUID()
 	user.AffCode = random.GetRandomString(4)
 	result := DB.Create(user)
 	if result.Error != nil {
 		return result.Error
 	}
-	if config.QuotaForNewUser > 0 {
-		RecordLog(ctx, user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", common.LogQuota(config.QuotaForNewUser)))
-	}
-	if inviterId != 0 {
-		if config.QuotaForInvitee > 0 {
-			_ = IncreaseUserQuota(user.Id, config.QuotaForInvitee)
-			RecordLog(ctx, user.Id, LogTypeSystem, fmt.Sprintf("使用邀请码赠送 %s", common.LogQuota(config.QuotaForInvitee)))
-		}
-		if config.QuotaForInviter > 0 {
-			_ = IncreaseUserQuota(inviterId, config.QuotaForInviter)
-			RecordLog(ctx, inviterId, LogTypeSystem, fmt.Sprintf("邀请用户赠送 %s", common.LogQuota(config.QuotaForInviter)))
-		}
+	if user.Points > 0 {
+		RecordLog(ctx, user.Id, LogTypeSystem, fmt.Sprintf("新用户按分组初始化 %s", common.LogPoints(user.Points)))
 	}
 	// create default token
 	cleanToken := Token{
-		UserId:         user.Id,
-		Name:           "default",
-		Key:            random.GenerateKey(),
-		CreatedTime:    helper.GetTimestamp(),
-		AccessedTime:   helper.GetTimestamp(),
-		ExpiredTime:    -1,
-		RemainQuota:    -1,
-		UnlimitedQuota: true,
+		UserId:       user.Id,
+		Name:         "default",
+		Key:          random.GenerateKey(),
+		CreatedTime:  helper.GetTimestamp(),
+		AccessedTime: helper.GetTimestamp(),
+		ExpiredTime:  -1,
 	}
 	result.Error = cleanToken.Insert()
 	if result.Error != nil {
@@ -346,14 +337,14 @@ func ValidateAccessToken(token string) (user *User) {
 	return nil
 }
 
-func GetUserQuota(id int) (quota int64, err error) {
-	err = DB.Model(&User{}).Where("id = ?", id).Select("quota").Find(&quota).Error
-	return quota, err
+func GetUserPoints(id int) (points int64, err error) {
+	err = DB.Model(&User{}).Where("id = ?", id).Select("points").Find(&points).Error
+	return points, err
 }
 
-func GetUserUsedQuota(id int) (quota int64, err error) {
-	err = DB.Model(&User{}).Where("id = ?", id).Select("used_quota").Find(&quota).Error
-	return quota, err
+func GetUserUsedPoints(id int) (points int64, err error) {
+	err = DB.Model(&User{}).Where("id = ?", id).Select("used_points").Find(&points).Error
+	return points, err
 }
 
 func GetUserEmail(id int) (email string, err error) {
@@ -371,36 +362,63 @@ func GetUserGroup(id int) (group string, err error) {
 	return group, err
 }
 
-func IncreaseUserQuota(id int, quota int64) (err error) {
-	if quota < 0 {
-		return errors.New("quota 不能为负数！")
+func IncreaseUserPoints(id int, points int64) (err error) {
+	if points < 0 {
+		return errors.New("points 不能为负数！")
 	}
 	if config.BatchUpdateEnabled {
-		addNewRecord(BatchUpdateTypeUserQuota, id, quota)
+		addNewRecord(BatchUpdateTypeUserPoints, id, points)
 		return nil
 	}
-	return increaseUserQuota(id, quota)
+	return increaseUserPoints(id, points)
 }
 
-func increaseUserQuota(id int, quota int64) (err error) {
-	err = DB.Model(&User{}).Where("id = ?", id).Update("quota", gorm.Expr("quota + ?", quota)).Error
+func increaseUserPoints(id int, points int64) (err error) {
+	err = DB.Model(&User{}).Where("id = ?", id).Update("points", gorm.Expr("points + ?", points)).Error
 	return err
 }
 
-func DecreaseUserQuota(id int, quota int64) (err error) {
-	if quota < 0 {
-		return errors.New("quota 不能为负数！")
+func DecreaseUserPoints(id int, points int64) (err error) {
+	if points < 0 {
+		return errors.New("points 不能为负数！")
 	}
 	if config.BatchUpdateEnabled {
-		addNewRecord(BatchUpdateTypeUserQuota, id, -quota)
+		addNewRecord(BatchUpdateTypeUserPoints, id, -points)
 		return nil
 	}
-	return decreaseUserQuota(id, quota)
+	return decreaseUserPoints(id, points)
 }
 
-func decreaseUserQuota(id int, quota int64) (err error) {
-	err = DB.Model(&User{}).Where("id = ?", id).Update("quota", gorm.Expr("quota - ?", quota)).Error
+func decreaseUserPoints(id int, points int64) (err error) {
+	err = DB.Model(&User{}).Where("id = ?", id).Update("points", gorm.Expr("points - ?", points)).Error
 	return err
+}
+
+func consumeUserPoints(id int, points int64) error {
+	if points < 0 {
+		return errors.New("points 不能为负数！")
+	}
+	result := DB.Model(&User{}).
+		Where("id = ? AND points >= ?", id, points).
+		Update("points", gorm.Expr("points - ?", points))
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("用户积分不足")
+	}
+	return nil
+}
+
+func ResetUserPoints(id int, points int64) error {
+	return DB.Model(&User{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"points":      points,
+		"used_points": 0,
+	}).Error
+}
+
+func SetUserPoints(id int, points int64) error {
+	return DB.Model(&User{}).Where("id = ?", id).Update("points", points).Error
 }
 
 func GetRootUserEmail() (email string) {
@@ -408,35 +426,35 @@ func GetRootUserEmail() (email string) {
 	return email
 }
 
-func UpdateUserUsedQuotaAndRequestCount(id int, quota int64) {
+func UpdateUserUsedPointsAndRequestCount(id int, points int64) {
 	if config.BatchUpdateEnabled {
-		addNewRecord(BatchUpdateTypeUsedQuota, id, quota)
+		addNewRecord(BatchUpdateTypeUsedPoints, id, points)
 		addNewRecord(BatchUpdateTypeRequestCount, id, 1)
 		return
 	}
-	updateUserUsedQuotaAndRequestCount(id, quota, 1)
+	updateUserUsedPointsAndRequestCount(id, points, 1)
 }
 
-func updateUserUsedQuotaAndRequestCount(id int, quota int64, count int) {
+func updateUserUsedPointsAndRequestCount(id int, points int64, count int) {
 	err := DB.Model(&User{}).Where("id = ?", id).Updates(
 		map[string]interface{}{
-			"used_quota":    gorm.Expr("used_quota + ?", quota),
+			"used_points":   gorm.Expr("used_points + ?", points),
 			"request_count": gorm.Expr("request_count + ?", count),
 		},
 	).Error
 	if err != nil {
-		logger.SysError("failed to update user used quota and request count: " + err.Error())
+		logger.SysError("failed to update user used points and request count: " + err.Error())
 	}
 }
 
-func updateUserUsedQuota(id int, quota int64) {
+func updateUserUsedPoints(id int, points int64) {
 	err := DB.Model(&User{}).Where("id = ?", id).Updates(
 		map[string]interface{}{
-			"used_quota": gorm.Expr("used_quota + ?", quota),
+			"used_points": gorm.Expr("used_points + ?", points),
 		},
 	).Error
 	if err != nil {
-		logger.SysError("failed to update user used quota: " + err.Error())
+		logger.SysError("failed to update user used points: " + err.Error())
 	}
 }
 

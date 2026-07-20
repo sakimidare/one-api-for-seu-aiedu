@@ -20,7 +20,6 @@ import {
 } from '../helpers';
 
 import { ITEMS_PER_PAGE } from '../constants';
-import { renderQuota } from '../helpers/render';
 
 function renderTimestamp(timestamp) {
   return <>{timestamp2string(timestamp)}</>;
@@ -337,22 +336,6 @@ const TokensTable = () => {
             <Table.HeaderCell
               style={{ cursor: 'pointer' }}
               onClick={() => {
-                sortToken('used_quota');
-              }}
-            >
-              {t('token.table.used_quota')}
-            </Table.HeaderCell>
-            <Table.HeaderCell
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
-                sortToken('remain_quota');
-              }}
-            >
-              {t('token.table.remain_quota')}
-            </Table.HeaderCell>
-            <Table.HeaderCell
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
                 sortToken('created_time');
               }}
             >
@@ -401,12 +384,6 @@ const TokensTable = () => {
                     {token.name ? token.name : t('token.table.no_name')}
                   </Table.Cell>
                   <Table.Cell>{renderStatus(token.status, t)}</Table.Cell>
-                  <Table.Cell>{renderQuota(token.used_quota, t)}</Table.Cell>
-                  <Table.Cell>
-                    {token.unlimited_quota
-                      ? t('token.table.unlimited')
-                      : renderQuota(token.remain_quota, t, 2)}
-                  </Table.Cell>
                   <Table.Cell>{renderTimestamp(token.created_time)}</Table.Cell>
                   <Table.Cell>
                     {token.expired_time === -1
@@ -495,7 +472,7 @@ const TokensTable = () => {
 
         <Table.Footer>
           <Table.Row>
-            <Table.HeaderCell colSpan='7'>
+            <Table.HeaderCell colSpan='5'>
               <Button size='small' as={Link} to='/token/add' loading={loading}>
                 {t('token.buttons.add')}
               </Button>
@@ -507,16 +484,6 @@ const TokensTable = () => {
                 selection
                 options={[
                   { key: '', text: t('token.sort.default'), value: '' },
-                  {
-                    key: 'remain_quota',
-                    text: t('token.sort.by_remain'),
-                    value: 'remain_quota',
-                  },
-                  {
-                    key: 'used_quota',
-                    text: t('token.sort.by_used'),
-                    value: 'used_quota',
-                  },
                 ]}
                 value={orderBy}
                 onChange={handleOrderByChange}
