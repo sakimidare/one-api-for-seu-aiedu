@@ -13,7 +13,7 @@ import { API, showError, showSuccess } from '../helpers';
 import { useTranslation } from 'react-i18next';
 
 import { ITEMS_PER_PAGE } from '../constants';
-import { renderGroup, renderNumber, renderQuota, renderText } from '../helpers/render';
+import { renderNumber, renderQuota, renderText } from '../helpers/render';
 
 function renderRole(role, t) {
   switch (role) {
@@ -205,14 +205,6 @@ const UsersTable = () => {
             <Table.HeaderCell
               style={{ cursor: 'pointer' }}
               onClick={() => {
-                sortUser('group');
-              }}
-            >
-              {t('user.table.group')}
-            </Table.HeaderCell>
-            <Table.HeaderCell
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
                 sortUser('points');
               }}
             >
@@ -260,7 +252,6 @@ const UsersTable = () => {
                       hoverable
                     />
                   </Table.Cell>
-                  <Table.Cell>{renderGroup(user.group)}</Table.Cell>
                   {/*<Table.Cell>*/}
                   {/*  {user.email ? <Popup hoverable content={user.email} trigger={<span>{renderText(user.email, 24)}</span>} /> : '无'}*/}
                   {/*</Table.Cell>*/}

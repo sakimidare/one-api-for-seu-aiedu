@@ -32,16 +32,3 @@ func TestPointsRefreshSchedule(t *testing.T) {
 		t.Fatalf("next refresh = %s, want %s", got, wantNext)
 	}
 }
-
-func TestGetDailyPointsByGroup(t *testing.T) {
-	original := config.DailyPointsByGroup
-	t.Cleanup(func() { config.DailyPointsByGroup = original })
-	config.DailyPointsByGroup = `{"default":1000,"dev":3000}`
-
-	if got := GetDailyPointsForGroup("dev"); got != 3000 {
-		t.Fatalf("dev points = %d, want 3000", got)
-	}
-	if got := GetDailyPointsForGroup("missing"); got != 0 {
-		t.Fatalf("missing group points = %d, want 0", got)
-	}
-}

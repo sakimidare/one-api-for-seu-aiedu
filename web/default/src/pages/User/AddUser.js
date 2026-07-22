@@ -1,29 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, Card } from 'semantic-ui-react';
+import { useNavigate } from 'react-router-dom';
 import { API, showError, showSuccess } from '../../helpers';
 
 const AddUser = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const originInputs = {
     username: '',
     display_name: '',
-	password: '',
-	group: 'default',
+    password: '',
+    daily_points: 500,
   };
   const [inputs, setInputs] = useState(originInputs);
-  const { username, display_name, password, group } = inputs;
-  const [groupOptions, setGroupOptions] = useState([]);
-
-  useEffect(() => {
-	API.get('/api/group/').then((res) => {
-	  if (res.data.success) {
-		setGroupOptions(res.data.data.map((item) => ({ key: item, text: item, value: item })));
-	  }
-	});
-  }, []);
+  const { username, display_name, password } = inputs;
 
   const handleInputChange = (e, { name, value }) => {
+    if (name === 'daily_points') {
+      value = parseInt(value);
+      if (isNaN(value) || value < 0) {
+        showError('每日积分必须是非负整数');
+        return;
+      }
+    }
     setInputs((inputs) => ({ ...inputs, [name]: value }));
   };
 
@@ -33,7 +33,7 @@ const AddUser = () => {
     const { success, message } = res.data;
     if (success) {
       showSuccess(t('user.messages.create_success'));
-      setInputs(originInputs);
+      navigate('/user');
     } else {
       showError(message);
     }
@@ -45,19 +45,6 @@ const AddUser = () => {
         <Card.Content>
           <Card.Header className='header'>{t('user.add.title')}</Card.Header>
           <Form autoComplete='off'>
-			<Form.Field>
-			  <Form.Dropdown
-				label={t('user.edit.group')}
-				name='group'
-				fluid
-				search
-				selection
-				allowAdditions
-				onChange={handleInputChange}
-				value={group}
-				options={groupOptions}
-			  />
-			</Form.Field>
 			<Form.Field>
 			  <Form.Input
                 label={t('user.edit.username')}
@@ -89,6 +76,16 @@ const AddUser = () => {
                 value={password}
                 autoComplete='off'
                 required
+              />
+            </Form.Field>
+            <Form.Field>
+              <Form.Input
+                label='每日积分'
+                name='daily_points'
+                type='number'
+                value={inputs.daily_points}
+                onChange={handleInputChange}
+                placeholder='每日刷新时重置为此数值'
               />
             </Form.Field>
             <Button positive type='submit' onClick={submit}>

@@ -48,7 +48,7 @@ type User struct {
 	Points           int64  `json:"points" gorm:"bigint;default:0"`
 	UsedPoints       int64  `json:"used_points" gorm:"bigint;default:0;column:used_points"`
 	RequestCount     int    `json:"request_count" gorm:"type:int;default:0;"` // request number
-	Group            string `json:"group" gorm:"type:varchar(32);default:'default'"`
+	DailyPoints      int64  `json:"daily_points" gorm:"bigint;default:500"`
 	AffCode          string `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
 	InviterId        int    `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
 }
@@ -125,10 +125,7 @@ func (user *User) Insert(ctx context.Context, inviterId int) error {
 			return err
 		}
 	}
-	if user.Group == "" {
-		user.Group = "default"
-	}
-	user.Points = GetDailyPointsForGroup(user.Group)
+	user.Points = user.DailyPoints
 	user.AccessToken = random.GetUUID()
 	user.AffCode = random.GetRandomString(4)
 	result := DB.Create(user)
@@ -136,7 +133,7 @@ func (user *User) Insert(ctx context.Context, inviterId int) error {
 		return result.Error
 	}
 	if user.Points > 0 {
-		RecordLog(ctx, user.Id, LogTypeSystem, fmt.Sprintf("新用户按分组初始化 %s", common.LogPoints(user.Points)))
+		RecordLog(ctx, user.Id, LogTypeSystem, fmt.Sprintf("新用户初始化 %s", common.LogPoints(user.Points)))
 	}
 	// create default token
 	cleanToken := Token{

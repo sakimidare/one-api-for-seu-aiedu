@@ -207,14 +207,6 @@ const Header = () => {
                     >
                       {t('header.login')}
                     </Button>
-                    <Button
-                      onClick={() => {
-                        setShowSidebar(false);
-                        navigate('/register');
-                      }}
-                    >
-                      {t('header.register')}
-                    </Button>
                   </>
                 )}
               </Menu.Item>

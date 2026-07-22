@@ -13,39 +13,25 @@ const EditUser = () => {
     username: '',
     display_name: '',
     password: '',
-    github_id: '',
-    wechat_id: '',
-    email: '',
     points: 0,
-    group: 'default',
+    daily_points: 0,
   });
-  const [groupOptions, setGroupOptions] = useState([]);
   const {
     username,
     display_name,
     password,
-    github_id,
-    wechat_id,
-    email,
     points,
-    group,
+    daily_points,
   } = inputs;
   const handleInputChange = (e, { name, value }) => {
-    setInputs((inputs) => ({ ...inputs, [name]: value }));
-  };
-  const fetchGroups = async () => {
-    try {
-      let res = await API.get(`/api/group/`);
-      setGroupOptions(
-        res.data.data.map((group) => ({
-          key: group,
-          text: group,
-          value: group,
-        }))
-      );
-    } catch (error) {
-      showError(error.message);
+    if (name === 'points' || name === 'daily_points') {
+      value = parseInt(value);
+      if (isNaN(value) || value < 0) {
+        showError(name === 'points' ? '积分必须是非负整数' : '每日积分必须是非负整数');
+        return;
+      }
     }
+    setInputs((inputs) => ({ ...inputs, [name]: value }));
   };
   const navigate = useNavigate();
   const handleCancel = () => {
@@ -69,9 +55,6 @@ const EditUser = () => {
   };
   useEffect(() => {
     loadUser().then();
-    if (userId) {
-      fetchGroups().then();
-    }
   }, []);
 
   const submit = async () => {
@@ -81,6 +64,9 @@ const EditUser = () => {
       if (typeof data.points === 'string') {
         data.points = parseInt(data.points);
       }
+      if (typeof data.daily_points === 'string') {
+        data.daily_points = parseInt(data.daily_points);
+      }
       res = await API.put(`/api/user/`, data);
     } else {
       res = await API.put(`/api/user/self`, inputs);
@@ -88,6 +74,11 @@ const EditUser = () => {
     const { success, message } = res.data;
     if (success) {
       showSuccess(t('user.messages.update_success'));
+      if (userId) {
+        navigate('/user');
+      } else {
+        navigate('/setting');
+      }
     } else {
       showError(message);
     }
@@ -133,24 +124,8 @@ const EditUser = () => {
             {userId && (
               <>
                 <Form.Field>
-                  <Form.Dropdown
-                    label={t('user.edit.group')}
-                    placeholder={t('user.edit.group_placeholder')}
-                    name='group'
-                    fluid
-                    search
-                    selection
-                    allowAdditions
-                    additionLabel={t('user.edit.group_addition')}
-                    onChange={handleInputChange}
-                    value={inputs.group}
-                    autoComplete='new-password'
-                    options={groupOptions}
-                  />
-                </Form.Field>
-                <Form.Field>
                   <Form.Input
-                    label='积分'
+                    label='剩余积分'
                     name='points'
                     placeholder='请输入新的剩余积分'
                     onChange={handleInputChange}
@@ -159,38 +134,19 @@ const EditUser = () => {
                     autoComplete='new-password'
                   />
                 </Form.Field>
+                <Form.Field>
+                  <Form.Input
+                    label='每日积分'
+                    name='daily_points'
+                    placeholder='每日刷新时重置为此数值'
+                    onChange={handleInputChange}
+                    value={daily_points}
+                    type={'number'}
+                    autoComplete='new-password'
+                  />
+                </Form.Field>
               </>
             )}
-            <Form.Field>
-              <Form.Input
-                label={t('user.edit.github_id')}
-                name='github_id'
-                value={github_id}
-                autoComplete='new-password'
-                placeholder={t('user.edit.github_id_placeholder')}
-                readOnly
-              />
-            </Form.Field>
-            <Form.Field>
-              <Form.Input
-                label={t('user.edit.wechat_id')}
-                name='wechat_id'
-                value={wechat_id}
-                autoComplete='new-password'
-                placeholder={t('user.edit.wechat_id_placeholder')}
-                readOnly
-              />
-            </Form.Field>
-            <Form.Field>
-              <Form.Input
-                label={t('user.edit.email')}
-                name='email'
-                value={email}
-                autoComplete='new-password'
-                placeholder={t('user.edit.email_placeholder')}
-                readOnly
-              />
-            </Form.Field>
             <Button onClick={handleCancel}>
               {t('user.edit.buttons.cancel')}
             </Button>

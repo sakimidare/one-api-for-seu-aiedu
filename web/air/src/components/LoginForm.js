@@ -159,9 +159,6 @@ const LoginForm = () => {
                 </Form>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20 }}>
                   <Text>
-                    没有账号请先 <Link to="/register">注册账号</Link>
-                  </Text>
-                  <Text>
                     忘记密码 <Link to="/reset">点击重置</Link>
                   </Text>
                 </div>

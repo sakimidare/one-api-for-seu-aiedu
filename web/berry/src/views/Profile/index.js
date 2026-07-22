@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2';
 import SubCard from 'ui-component/cards/SubCard';
-import { IconBrandWechat, IconBrandGithub, IconMail } from '@tabler/icons-react';
+import { IconBrandWechat, IconBrandGithub } from '@tabler/icons-react';
 import Label from 'ui-component/Label';
 import { API } from 'utils/api';
 import { onOidcClicked, showError, showSuccess } from 'utils/common';
@@ -25,7 +25,6 @@ import { onGitHubOAuthClicked, onLarkOAuthClicked, copy } from 'utils/common';
 import * as Yup from 'yup';
 import WechatModal from 'views/Authentication/AuthForms/WechatModal';
 import { useSelector } from 'react-redux';
-import EmailModal from './component/EmailModal';
 import Turnstile from 'react-turnstile';
 import { ReactComponent as Lark } from 'assets/images/icons/lark.svg';
 import { ReactComponent as OIDC } from 'assets/images/icons/oidc.svg';
@@ -45,7 +44,6 @@ export default function Profile() {
   const [turnstileSiteKey, setTurnstileSiteKey] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [openWechat, setOpenWechat] = useState(false);
-  const [openEmail, setOpenEmail] = useState(false);
   const status = useSelector((state) => state.siteInfo);
 
   const handleWechatOpen = () => {
@@ -145,9 +143,6 @@ export default function Profile() {
               <Label variant="ghost" color={inputs.github_id ? 'primary' : 'default'}>
                 <IconBrandGithub /> {inputs.github_id || '未绑定'}
               </Label>
-              <Label variant="ghost" color={inputs.email ? 'primary' : 'default'}>
-                <IconMail /> {inputs.email || '未绑定'}
-              </Label>
               <Label variant="ghost" color={inputs.lark_id ? 'primary' : 'default'}>
                 <SvgIcon component={Lark} inheritViewBox="0 0 24 24" /> {inputs.lark_id || '未绑定'}
               </Label>
@@ -238,13 +233,6 @@ export default function Profile() {
                 )}
                 <Grid xs={12} md={4}>
                   <Button
-                    variant="contained"
-                    onClick={() => {
-                      setOpenEmail(true);
-                    }}
-                  >
-                    {inputs.email ? '更换邮箱' : '绑定邮箱'}
-                  </Button>
                   {turnstileEnabled ? (
                     <Turnstile
                       sitekey={turnstileSiteKey}
@@ -312,13 +300,6 @@ export default function Profile() {
         </DialogActions>
       </Dialog>
       <WechatModal open={openWechat} handleClose={handleWechatClose} wechatLogin={bindWeChat} qrCode={status.wechat_qrcode} />
-      <EmailModal
-        open={openEmail}
-        turnstileToken={turnstileToken}
-        handleClose={() => {
-          setOpenEmail(false);
-        }}
-      />
     </>
   );
 }

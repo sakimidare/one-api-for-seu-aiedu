@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+import { Navigate } from 'react-router-dom';
 
 // project imports
 import Loadable from 'ui-component/Loadable';
@@ -6,7 +7,6 @@ import MinimalLayout from 'layout/MinimalLayout';
 
 // login option 3 routing
 const AuthLogin = Loadable(lazy(() => import('views/Authentication/Auth/Login')));
-const AuthRegister = Loadable(lazy(() => import('views/Authentication/Auth/Register')));
 const GitHubOAuth = Loadable(lazy(() => import('views/Authentication/Auth/GitHubOAuth')));
 const LarkOAuth = Loadable(lazy(() => import('views/Authentication/Auth/LarkOAuth')));
 const OidcOAuth = Loadable(lazy(() => import('views/Authentication/Auth/OidcOAuth')));
@@ -36,7 +36,7 @@ const OtherRoutes = {
     },
     {
       path: '/register',
-      element: <AuthRegister />
+      element: <Navigate to="/login" />
     },
     {
       path: '/reset',

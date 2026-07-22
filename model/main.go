@@ -42,7 +42,7 @@ func CreateRootAccountIfNeed() error {
 			Status:      UserStatusEnabled,
 			DisplayName: "Root User",
 			AccessToken: accessToken,
-			Points:      GetDailyPointsForGroup("default"),
+			Points:      0,
 		}
 		DB.Create(&rootUser)
 		if config.InitialRootToken != "" {
@@ -94,7 +94,7 @@ func openMySQL(dsn string) (*gorm.DB, error) {
 	logger.SysLog("using MySQL as database")
 	common.UsingMySQL = true
 	return gorm.Open(mysql.Open(dsn), &gorm.Config{
-		PrepareStmt: true, // precompile SQL
+		PrepareStmt: false, // disable to avoid MySQL reserved word issues
 	})
 }
 
@@ -162,7 +162,7 @@ func migrateDB() error {
 func migratePointsV1() error {
 	const migrationKey = "PointsMigrationV1"
 	var migration Option
-	if err := DB.Where("key = ?", migrationKey).First(&migration).Error; err == nil {
+	if err := DB.Where("`key` = ?", migrationKey).First(&migration).Error; err == nil {
 		return nil
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err

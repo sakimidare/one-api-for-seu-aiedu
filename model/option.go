@@ -61,17 +61,14 @@ func InitOptionMap() {
 	config.OptionMap["MessagePusherToken"] = ""
 	config.OptionMap["TurnstileSiteKey"] = ""
 	config.OptionMap["TurnstileSecretKey"] = ""
-	config.OptionMap["DailyPointsByGroup"] = config.DailyPointsByGroup
 	config.OptionMap["PointsRefreshTime"] = config.PointsRefreshTime
 	config.OptionMap["PointsRefreshTimezone"] = config.PointsRefreshTimezone
 	config.OptionMap["LastPointsRefreshDate"] = config.LastPointsRefreshDate
 	config.OptionMap["PreConsumedPoints"] = strconv.FormatInt(config.PreConsumedPoints, 10)
 	config.OptionMap["ModelRatio"] = billingratio.ModelRatio2JSONString()
-	config.OptionMap["GroupRatio"] = billingratio.GroupRatio2JSONString()
 	config.OptionMap["CompletionRatio"] = billingratio.CompletionRatio2JSONString()
 	config.OptionMap["ChatLink"] = config.ChatLink
 	config.OptionMap["RetryTimes"] = strconv.Itoa(config.RetryTimes)
-	config.OptionMap["Theme"] = config.Theme
 	config.OptionMapRWMutex.Unlock()
 	loadOptionsFromDatabase()
 }
@@ -210,8 +207,6 @@ func updateOptionMap(key string, value string) (err error) {
 		config.TurnstileSiteKey = value
 	case "TurnstileSecretKey":
 		config.TurnstileSecretKey = value
-	case "DailyPointsByGroup":
-		config.DailyPointsByGroup = value
 	case "PointsRefreshTime":
 		config.PointsRefreshTime = value
 	case "PointsRefreshTimezone":
@@ -224,16 +219,11 @@ func updateOptionMap(key string, value string) (err error) {
 		config.RetryTimes, _ = strconv.Atoi(value)
 	case "ModelRatio":
 		err = billingratio.UpdateModelRatioByJSONString(value)
-	case "GroupRatio":
-		err = billingratio.UpdateGroupRatioByJSONString(value)
 	case "CompletionRatio":
 		err = billingratio.UpdateCompletionRatioByJSONString(value)
 	case "ChatLink":
 		config.ChatLink = value
 	case "ChannelDisableThreshold":
-		config.ChannelDisableThreshold, _ = strconv.ParseFloat(value, 64)
-	case "Theme":
-		config.Theme = value
 	}
 	return err
 }

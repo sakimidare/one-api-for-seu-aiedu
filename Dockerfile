@@ -1,5 +1,8 @@
 FROM --platform=$BUILDPLATFORM node:16 AS builder
 
+ARG GOPROXY
+ENV GOPROXY=${GOPROXY:-https://proxy.golang.org,direct}
+
 WORKDIR /web
 COPY ./VERSION .
 COPY ./web .
@@ -15,6 +18,9 @@ RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat ./VERSION) npm run buil
     wait
 
 FROM golang:alpine AS builder2
+
+ARG GOPROXY
+ENV GOPROXY=${GOPROXY:-https://proxy.golang.org,direct}
 
 RUN apk add --no-cache \
     gcc \

@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -11,49 +10,12 @@ import (
 	"github.com/songquanpeng/one-api/common/logger"
 )
 
-func GetDailyPointsByGroup() map[string]int64 {
-	points := map[string]int64{"default": 0}
-	if strings.TrimSpace(config.DailyPointsByGroup) == "" {
-		return points
-	}
-	if err := json.Unmarshal([]byte(config.DailyPointsByGroup), &points); err != nil {
-		logger.SysError("failed to parse DailyPointsByGroup: " + err.Error())
-		return map[string]int64{"default": 0}
-	}
-	return points
-}
-
-func GetDailyPointsForGroup(group string) int64 {
-	points := GetDailyPointsByGroup()
-	if value, ok := points[group]; ok {
-		return value
-	}
-	return 0
-}
-
 func RefreshUserPoints() error {
-	pointsByGroup := GetDailyPointsByGroup()
-	groupCol := "`group`"
-	if common.UsingPostgreSQL {
-		groupCol = `"group"`
-	}
 	tx := DB.Begin()
 	if tx.Error != nil {
 		return tx.Error
 	}
-	for group, points := range pointsByGroup {
-		if err := tx.Model(&User{}).Where("status != ? AND "+groupCol+" = ?", UserStatusDeleted, group).Updates(map[string]interface{}{
-			"points":      points,
-			"used_points": 0,
-		}).Error; err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-	if err := tx.Model(&User{}).Where("status != ? AND "+groupCol+" NOT IN ?", UserStatusDeleted, keys(pointsByGroup)).Updates(map[string]interface{}{
-		"points":      0,
-		"used_points": 0,
-	}).Error; err != nil {
+	if err := tx.Exec("UPDATE users SET points = daily_points, used_points = 0 WHERE status != ?", UserStatusDeleted).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -141,15 +103,4 @@ func refreshAndRecord(date string) error {
 	}
 	logger.SysLog("daily points refreshed for " + date)
 	return nil
-}
-
-func keys(values map[string]int64) []string {
-	result := make([]string, 0, len(values))
-	for key := range values {
-		result = append(result, key)
-	}
-	if len(result) == 0 {
-		return []string{""}
-	}
-	return result
 }

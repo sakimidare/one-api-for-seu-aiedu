@@ -33,7 +33,7 @@ type Log struct {
 
 const (
 	LogTypeUnknown = iota
-	LogTypeTopup   // Kept for compatibility with historical log rows.
+	_              // Deprecated: LogTypeTopup was removed.
 	LogTypeConsume
 	LogTypeManage
 	LogTypeSystem

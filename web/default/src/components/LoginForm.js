@@ -11,7 +11,7 @@ import {
   Segment,
   Card,
 } from 'semantic-ui-react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UserContext } from '../context/User';
 import { API, getLogo, showError, showSuccess, showWarning } from '../helpers';
@@ -161,24 +161,6 @@ const LoginForm = () => {
                   color: '#666',
                 }}
               >
-                <div>
-                  {t('auth.login.forgot_password')}
-                  <Link
-                    to='/reset'
-                    style={{ color: '#2185d0', marginLeft: '2px' }}
-                  >
-                    {t('auth.login.reset_password')}
-                  </Link>
-                </div>
-                <div>
-                  {t('auth.login.no_account')}
-                  <Link
-                    to='/register'
-                    style={{ color: '#2185d0', marginLeft: '2px' }}
-                  >
-                    {t('auth.login.register')}
-                  </Link>
-                </div>
               </div>
             </Message>
 

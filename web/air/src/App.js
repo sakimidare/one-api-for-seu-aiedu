@@ -1,9 +1,8 @@
 import React, { lazy, Suspense, useContext, useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Loading from './components/Loading';
 import User from './pages/User';
 import { PrivateRoute } from './components/PrivateRoute';
-import RegisterForm from './components/RegisterForm';
 import LoginForm from './components/LoginForm';
 import NotFound from './pages/NotFound';
 import Setting from './pages/Setting';
@@ -138,11 +137,7 @@ function App() {
           />
           <Route
             path="/register"
-            element={
-              <Suspense fallback={<Loading></Loading>}>
-                <RegisterForm />
-              </Suspense>
-            }
+            element={<Navigate to="/login" />}
           />
           <Route
             path="/reset"

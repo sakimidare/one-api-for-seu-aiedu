@@ -13,14 +13,12 @@ const OperationSetting = () => {
   const { t } = useTranslation();
   let now = new Date();
   let [inputs, setInputs] = useState({
-    DailyPointsByGroup: '{"default":0}',
     PointsRefreshTime: '00:00',
     PointsRefreshTimezone: 'Asia/Shanghai',
     LastPointsRefreshDate: '',
     PreConsumedPoints: 0,
     ModelRatio: '',
     CompletionRatio: '',
-    GroupRatio: '',
     ChatLink: '',
     AutomaticDisableChannelEnabled: '',
     AutomaticEnableChannelEnabled: '',
@@ -44,7 +42,6 @@ const OperationSetting = () => {
       data.forEach((item) => {
         if (
           item.key === 'ModelRatio' ||
-          item.key === 'GroupRatio' ||
           item.key === 'CompletionRatio'
         ) {
           item.value = JSON.stringify(JSON.parse(item.value), null, 2);
@@ -112,13 +109,6 @@ const OperationSetting = () => {
           }
           await updateOption('ModelRatio', inputs.ModelRatio);
         }
-        if (originInputs['GroupRatio'] !== inputs.GroupRatio) {
-          if (!verifyJSON(inputs.GroupRatio)) {
-            showError('分组倍率不是合法的 JSON 字符串');
-            return;
-          }
-          await updateOption('GroupRatio', inputs.GroupRatio);
-        }
         if (originInputs['CompletionRatio'] !== inputs.CompletionRatio) {
           if (!verifyJSON(inputs.CompletionRatio)) {
             showError('补全倍率不是合法的 JSON 字符串');
@@ -128,13 +118,6 @@ const OperationSetting = () => {
         }
         break;
       case 'quota':
-        if (originInputs['DailyPointsByGroup'] !== inputs.DailyPointsByGroup) {
-          if (!verifyJSON(inputs.DailyPointsByGroup)) {
-            showError('分组积分配置不是合法的 JSON 字符串');
-            return;
-          }
-          await updateOption('DailyPointsByGroup', inputs.DailyPointsByGroup);
-        }
         if (originInputs['PointsRefreshTime'] !== inputs.PointsRefreshTime) {
           await updateOption('PointsRefreshTime', inputs.PointsRefreshTime);
         }
@@ -175,14 +158,6 @@ const OperationSetting = () => {
         <Form loading={loading}>
           <Header as='h3'>积分配额</Header>
           <Form.Group widths='equal'>
-            <Form.Input
-              label='分组每日积分(JSON)'
-              name='DailyPointsByGroup'
-              onChange={handleInputChange}
-              autoComplete='new-password'
-              value={inputs.DailyPointsByGroup}
-              placeholder='例如 {"default":100,"dev":200}'
-            />
             <Form.Input
               label='预扣积分'
               name='PreConsumedPoints'
@@ -239,17 +214,6 @@ const OperationSetting = () => {
               autoComplete='new-password'
               value={inputs.CompletionRatio}
               placeholder={t('setting.operation.ratio.completion.placeholder')}
-            />
-          </Form.Group>
-          <Form.Group widths='equal'>
-            <Form.TextArea
-              label={t('setting.operation.ratio.group.title')}
-              name='GroupRatio'
-              onChange={handleInputChange}
-              style={{ minHeight: 250, fontFamily: 'JetBrains Mono, Consolas' }}
-              autoComplete='new-password'
-              value={inputs.GroupRatio}
-              placeholder={t('setting.operation.ratio.group.placeholder')}
             />
           </Form.Group>
           <Form.Button

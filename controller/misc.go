@@ -35,7 +35,6 @@ func GetStatus(c *gin.Context) {
 			"turnstile_check":             config.TurnstileCheckEnabled,
 			"turnstile_site_key":          config.TurnstileSiteKey,
 			"chat_link":                   config.ChatLink,
-			"daily_points_by_group":       config.DailyPointsByGroup,
 			"points_refresh_time":         config.PointsRefreshTime,
 			"points_refresh_timezone":     config.PointsRefreshTimezone,
 			"oidc":                        config.OidcEnabled,

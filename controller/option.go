@@ -48,14 +48,6 @@ func UpdateOption(c *gin.Context) {
 		return
 	}
 	switch option.Key {
-	case "Theme":
-		if !config.ValidThemes[option.Value] {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "无效的主题",
-			})
-			return
-		}
 	case "GitHubOAuthEnabled":
 		if option.Value == "true" && config.GitHubClientId == "" {
 			c.JSON(http.StatusOK, gin.H{
@@ -87,18 +79,6 @@ func UpdateOption(c *gin.Context) {
 				"message": "无法启用 Turnstile 校验，请先填入 Turnstile 校验相关配置信息！",
 			})
 			return
-		}
-	case "DailyPointsByGroup":
-		points := make(map[string]int64)
-		if err := json.Unmarshal([]byte(option.Value), &points); err != nil || len(points) == 0 {
-			c.JSON(http.StatusOK, gin.H{"success": false, "message": "分组每日积分必须是非空的整数 JSON 对象"})
-			return
-		}
-		for group, value := range points {
-			if strings.TrimSpace(group) == "" || value < 0 {
-				c.JSON(http.StatusOK, gin.H{"success": false, "message": "分组名称不能为空，积分不能为负数"})
-				return
-			}
 		}
 	case "PointsRefreshTime":
 		if _, err := time.Parse("15:04", option.Value); err != nil {

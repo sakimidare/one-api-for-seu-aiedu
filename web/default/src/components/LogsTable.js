@@ -49,12 +49,6 @@ const MODE_OPTIONS = [
 
 function renderType(type) {
   switch (type) {
-    case 1:
-      return (
-        <Label basic color='green'>
-          充值
-        </Label>
-      );
     case 2:
       return (
         <Label basic color='olive'>
