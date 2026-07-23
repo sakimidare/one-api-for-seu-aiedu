@@ -172,7 +172,7 @@ const LogsTable = () => {
     let localStartTimestamp = Date.parse(start_timestamp) / 1000;
     let localEndTimestamp = Date.parse(end_timestamp) / 1000;
     let res = await API.get(
-      `/api/log/self/stat?type=${logType}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`
+      `/api/log/stat?type=${logType}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`
     );
     const { success, message, data } = res.data;
     if (success) {
@@ -218,7 +218,7 @@ const LogsTable = () => {
     if (isAdminUser) {
       url = `/api/log/?p=${startIdx}&type=${logType}&username=${username}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}&channel=${channel}`;
     } else {
-      url = `/api/log/self/?p=${startIdx}&type=${logType}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`;
+      url = `/api/log/?p=${startIdx}&type=${logType}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}`;
     }
     const res = await API.get(url);
     const { success, message, data } = res.data;
@@ -264,7 +264,7 @@ const LogsTable = () => {
       return;
     }
     setSearching(true);
-    const res = await API.get(`/api/log/self/search?keyword=${searchKeyword}`);
+    const res = await API.get(`/api/log/search?keyword=${searchKeyword}`);
     const { success, message, data } = res.data;
     if (success) {
       setLogs(data);
@@ -273,6 +273,34 @@ const LogsTable = () => {
       showError(message);
     }
     setSearching(false);
+  };
+
+  const exportLogs = async () => {
+    let url = '';
+    let localStartTimestamp = Date.parse(start_timestamp) / 1000;
+    let localEndTimestamp = Date.parse(end_timestamp) / 1000;
+    if (isAdminUser) {
+      url = `/api/log/?type=${logType}&username=${username}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}&channel=${channel}&export=1`;
+    } else {
+      url = `/api/log/?type=${logType}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}&export=1`;
+    }
+    const res = await API.get(url);
+    const { success, message, data } = res.data;
+    if (!success) {
+      showError(message);
+      return;
+    }
+    let csv = '\uFEFF时间,类型,用户,令牌,模型,提示词,补全,积分,详情\n';
+    for (const log of data) {
+      const typeMap = {0:'未知',2:'消费',3:'管理',4:'系统',5:'测试'};
+      csv += `"${timestamp2string(log.created_at)}","${typeMap[log.type]||''}","${log.username||''}","${log.token_name||''}","${log.model_name||''}",${log.prompt_tokens||0},${log.completion_tokens||0},${log.points||0},"${(log.content||'').replace(/"/g,'""')}"\n`;
+    }
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `日志导出_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
   };
 
   const handleKeywordChange = async (e, { value }) => {
@@ -315,6 +343,9 @@ const LogsTable = () => {
           </span>
         )}
         ）
+        <Button size='tiny' onClick={exportLogs} style={{ marginLeft: '10px' }}>
+          导出日志
+        </Button>
       </Header>
       <Form>
         <Form.Group>
@@ -394,13 +425,15 @@ const LogsTable = () => {
             </Form.Group>
           </>
         )}
-        <Form.Input
-          icon='search'
-          placeholder={t('log.search')}
-          value={searchKeyword}
-          onChange={(e, { value }) => setSearchKeyword(value)}
-        />
-      </Form>
+        </Form>
+        <Form onSubmit={searchLogs}>
+          <Form.Input
+            icon='search'
+            placeholder={t('log.search')}
+            value={searchKeyword}
+            onChange={(e, { value }) => setSearchKeyword(value)}
+          />
+        </Form>
       <Table basic={'very'} compact size='small'>
         <Table.Header>
           <Table.Row>

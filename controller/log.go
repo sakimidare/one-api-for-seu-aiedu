@@ -21,7 +21,28 @@ func GetAllLogs(c *gin.Context) {
 	tokenName := c.Query("token_name")
 	modelName := c.Query("model_name")
 	channel, _ := strconv.Atoi(c.Query("channel"))
-	logs, err := model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, p*config.ItemsPerPage, config.ItemsPerPage, channel)
+	export := c.Query("export") == "1"
+	isAdmin := c.GetInt(ctxkey.Role) >= model.RoleAdminUser
+	var logs []*model.Log
+	var err error
+	limit := config.ItemsPerPage
+	if export {
+		limit = 100000
+	}
+	if isAdmin {
+		if export {
+			logs, err = model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, 0, limit, channel)
+		} else {
+			logs, err = model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, p*config.ItemsPerPage, limit, channel)
+		}
+	} else {
+		userId := c.GetInt(ctxkey.Id)
+		if export {
+			logs, err = model.GetUserLogs(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, 0, limit)
+		} else {
+			logs, err = model.GetUserLogs(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, p*config.ItemsPerPage, limit)
+		}
+	}
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -48,7 +69,13 @@ func GetUserLogs(c *gin.Context) {
 	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
 	tokenName := c.Query("token_name")
 	modelName := c.Query("model_name")
-	logs, err := model.GetUserLogs(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, p*config.ItemsPerPage, config.ItemsPerPage)
+	var logs []*model.Log
+	var err error
+	if c.Query("export") == "1" {
+		logs, err = model.GetUserLogs(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, 0, 100000)
+	} else {
+		logs, err = model.GetUserLogs(userId, logType, startTimestamp, endTimestamp, modelName, tokenName, p*config.ItemsPerPage, config.ItemsPerPage)
+	}
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -66,7 +93,15 @@ func GetUserLogs(c *gin.Context) {
 
 func SearchAllLogs(c *gin.Context) {
 	keyword := c.Query("keyword")
-	logs, err := model.SearchAllLogs(keyword)
+	isAdmin := c.GetInt(ctxkey.Role) >= model.RoleAdminUser
+	var logs []*model.Log
+	var err error
+	if isAdmin {
+		logs, err = model.SearchAllLogs(keyword)
+	} else {
+		userId := c.GetInt(ctxkey.Id)
+		logs, err = model.SearchUserLogs(userId, keyword)
+	}
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,

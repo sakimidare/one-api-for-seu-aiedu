@@ -47,7 +47,7 @@ const EditToken = () => {
       timestamp += seconds;
       setInputs({ ...inputs, expired_time: timestamp2string(timestamp) });
     } else {
-      setInputs({ ...inputs, expired_time: -1 });
+      setInputs({ ...inputs, expired_time: '' });
     }
   };
 
@@ -119,6 +119,8 @@ const EditToken = () => {
         return;
       }
       localInputs.expired_time = Math.ceil(time / 1000);
+    } else {
+      localInputs.expired_time = -1;
     }
     localInputs.models = localInputs.models.join(',');
     let res;
